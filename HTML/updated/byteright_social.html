@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Flow</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Source+Sans+Pro:wght@400;600&display=swap" rel="stylesheet">
+    
+    <!-- Common + Page-specific CSS -->
+    <link rel="stylesheet" href="common.css" />
+    <link rel="stylesheet" href="social.css" />
+</head>
+<body>
+    <div class="container">
+        <h1>Data Flow</h1>
+        
+        <div class="main-content">
+            <div class="flow-description">
+                <h2>System Overview</h2>
+                
+                <div class="flow-item">
+                    <strong>Login</strong> <span class="arrow">→</span> <strong>Home</strong>
+                    <p>User logs in, session starts, homepage loads personalized content.</p>
+                </div>
+                
+                <div class="flow-item">
+                    <strong>Home</strong> <span class="arrow">→</span> <strong>Features</strong>
+                    <p>Home links to recipe generator, planner, templates, etc., checking session each time.</p>
+                </div>
+                
+                <div class="flow-item">
+                    <strong>Pages</strong> <span class="arrow">↔</span> <strong>Database</strong>
+                    <p>Each feature page sends requests to PHP, which reads/writes MySQL data.</p>
+                </div>
+                
+                <div class="flow-item">
+                    <strong>Saving Data</strong>
+                    <p>Forms send POST requests, PHP updates the database, and pages refresh with new data.</p>
+                </div>
+                
+                <div class="flow-item">
+                    <strong>Consistent Navigation</strong>
+                    <p>Same navbar across pages so users move smoothly through the site.</p>
+                </div>
+            </div>
+            
+            <div class="architecture">
+                <div class="arch-diagram">
+                    <div class="client-box">
+                        <div class="label">Client</div>
+                        <div class="sub-label">Browser</div>
+                    </div>
+                    
+                    <div class="connector">
+                        <div class="line"></div>
+                        <span>HTTP</span>
+                        <div class="arrow-down"></div>
+                    </div>
+                    
+                    <div class="middle-section">
+                        <div class="frontend-box">
+                            <div class="section-label">Frontend</div>
+                            <div class="component-flow">
+                                <div class="component">HTML</div>
+                                <div class="component-connector">↓</div>
+                                <div class="component">Templates</div>
+                                <div class="component-connector">↓</div>
+                                <div class="component">CSS</div>
+                                <div class="component-connector">↓</div>
+                                <div class="component">JavaScript</div>
+                            </div>
+                        </div>
+                        
+                        <div class="horizontal-connector">
+                            <span class="h-arrow">←</span>
+                            <div class="h-line"></div>
+                            <span>Backend</span>
+                            <div class="h-line"></div>
+                            <span class="h-arrow">→</span>
+                        </div>
+                        
+                        <div class="backend-box">
+                            <div class="section-label">Backend</div>
+                            <div class="backend-list">
+                                <div class="backend-item">Authentication</div>
+                                <div class="backend-item">Recipe Generator</div>
+                                <div class="backend-item">Social Feed</div>
+                                <div class="backend-item">Meal Planner</div>
+                                <div class="backend-item">Shopping List</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="database-section">
+                        <div class="connector">
+                            <div class="arrow-down" style="transform: rotate(180deg); margin-bottom: 5px;"></div>
+                            <div class="sql-label">SQL</div>
+                            <div class="arrow-down" style="margin-top: 5px;"></div>
+                        </div>
+                        
+                        <div class="database-container">
+                            <div class="db-label">Database</div>
+                            <div class="db-tables">
+                                <div class="db-table">Users</div>
+                                <div class="db-table">Recipes</div>
+                                <div class="db-table">Friends</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-cards">
+            <div class="info-card">
+                <h3>POST - Form Submissions</h3>
+                <p>Used for login, registration, creating posts, and updating meal plans</p>
+            </div>
+            <div class="info-card">
+                <h3>GET - Data Fetching</h3>
+                <p>Used for loading recipes, retrieving posts, and displaying meal plans</p>
+            </div>
+            <div class="info-card">
+                <h3>SESSION - Login Persistence</h3>
+                <p>PHP sessions maintain user authentication across page visits</p>
+            </div>
+        </div>
+        
+        <div class="footer-bar">
+            <span>All sensitive data encrypted in transit</span>
+            <span>Form data validated server-side</span>
+            <span>Database queries use prepared statements</span>
+        </div>
+    </div>
+</body>
+</html>

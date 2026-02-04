@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ByteRight – Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-main:#e8f3d8;
+      --bg-card:#fff7e6;
+      --accent:#7cb342;
+      --accent-alt:#ffd54f;
+      --text-main:#3e2723;
+      --text-muted:#6d4c41;
+      --radius-lg:20px;
+      --transition-fast:.2s ease-out;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:"Inter",system-ui,sans-serif;
+      background:radial-gradient(circle at top left,#fdf2d5 0,#e8f3d8 40%,#d7ebc7 100%);
+      color:var(--text-main);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+    .auth-shell{
+      width:100%;
+      max-width:960px;
+      background:rgba(255,248,231,.96);
+      border-radius:var(--radius-lg);
+      box-shadow:0 24px 40px rgba(93,64,55,.25);
+      display:grid;
+      grid-template-columns:1.1fr 1fr;
+      overflow:hidden;
+      border:2px solid rgba(124,179,66,.2);
+    }
+    .auth-hero{
+      padding:32px 32px 28px;
+      position:relative;
+      background:radial-gradient(circle at top,#ffd54f 0,#ffeacc 40%,#f5fbe9 100%);
+    }
+    .logo-row{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin-bottom:28px;
+    }
+    .logo-mark{
+      width:40px;height:40px;border-radius:50%;
+      background:radial-gradient(circle at 30% 20%,#fff3e0 0,#ffcc80 40%,#fb8c00 100%);
+      display:flex;align-items:center;justify-content:center;
+      box-shadow:0 3px 8px rgba(93,64,55,.25);
+      font-size:1.4rem;
+    }
+    .logo-text{
+      font-weight:800;
+      letter-spacing:.14em;
+      font-size:1rem;
+    }
+    .logo-sub{
+      font-size:.7rem;
+      text-transform:uppercase;
+      letter-spacing:.18em;
+      color:var(--text-muted);
+    }
+    .auth-hero h1{
+      margin-top:10px;
+      font-size:1.8rem;
+      line-height:1.3;
+    }
+    .auth-hero h1 span{color:var(--accent)}
+    .auth-hero p{
+      margin-top:10px;
+      color:var(--text-muted);
+      font-size:.93rem;
+      max-width:360px;
+    }
+    .pill-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:18px;
+    }
+    .pill{
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(232,243,216,.9);
+      border:1px solid rgba(124,179,66,.3);
+      font-size:.8rem;
+      color:var(--text-muted);
+      display:flex;
+      align-items:center;
+      gap:5px;
+    }
+    .auth-illustration{
+      position:absolute;
+      bottom:16px;
+      right:20px;
+      font-size:3.6rem;
+      opacity:.35;
+    }
+    .auth-panel{
+      padding:32px 28px;
+      background:#fffdf5;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      gap:14px;
+    }
+    .auth-tabs{
+      display:flex;
+      gap:10px;
+      margin-bottom:8px;
+    }
+    .auth-tab{
+      padding:6px 14px;
+      border-radius:999px;
+      border:1px solid transparent;
+      font-size:.85rem;
+      cursor:pointer;
+      background:none;
+      color:var(--text-muted);
+    }
+    .auth-tab.active{
+      background:var(--accent);
+      color:#fff;
+      border-color:var(--accent);
+      font-weight:600;
+    }
+    .auth-panel h2{
+      font-size:1.2rem;
+      margin-top:4px;
+    }
+    .auth-panel p{
+      font-size:.86rem;
+      color:var(--text-muted);
+      margin-bottom:6px;
+    }
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:5px;
+      margin-top:8px;
+      font-size:.85rem;
+    }
+    .field label{color:var(--text-muted);font-weight:600;font-size:.8rem;}
+    .field input{
+      padding:9px 11px;
+      border-radius:12px;
+      border:1px solid rgba(139,110,64,.3);
+      background:#fffaf0;
+      font-size:.9rem;
+      color:var(--text-main);
+    }
+    .field input:focus{
+      outline:none;
+      border-color:var(--accent);
+      box-shadow:0 0 0 3px rgba(124,179,66,.25);
+    }
+    .inline-row{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-top:6px;
+      font-size:.8rem;
+    }
+    .inline-row a{
+      color:var(--accent);
+      text-decoration:none;
+    }
+    .inline-row a:hover{text-decoration:underline;}
+    .btn-main{
+      margin-top:14px;
+      width:100%;
+      padding:10px 14px;
+      border-radius:999px;
+      border:none;
+      cursor:pointer;
+      background:linear-gradient(135deg,#7cb342,#689f38);
+      color:#fff;
+      font-weight:650;
+      font-size:.95rem;
+      box-shadow:0 10px 20px rgba(124,179,66,.45);
+      transition:transform var(--transition-fast),box-shadow var(--transition-fast);
+    }
+    .btn-main:hover{
+      transform:translateY(-1px);
+      box-shadow:0 13px 24px rgba(124,179,66,.6);
+    }
+    .small-note{
+      margin-top:10px;
+      font-size:.78rem;
+      color:var(--text-muted);
+    }
+    .small-note span{
+      color:var(--accent);
+      font-weight:600;
+    }
+    @media (max-width:800px){
+      .auth-shell{grid-template-columns:1fr;}
+      .auth-hero{display:none;}
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-shell">
+    <div class="auth-hero">
+      <div class="logo-row">
+        <div class="logo-mark">👦</div>
+        <div>
+          <div class="logo-text">BYTERIGHT</div>
+          <div class="logo-sub">SMART COOKING FOR STUDENTS</div>
+        </div>
+      </div>
+      <h1>Cook <span>smarter</span>, spend less, waste less.</h1>
+      <p>
+        ByteRight turns whatever you already have in your kitchen into simple,
+        budget-friendly recipes – and builds weekly plans around your time and budget.
+      </p>
+      <div class="pill-row">
+        <div class="pill">🥕 Ingredient-based recipes</div>
+        <div class="pill">📅 Weekly meal plans</div>
+        <div class="pill">📸 Share food with friends</div>
+        <div class="pill">💰 Track savings</div>
+      </div>
+      <div class="auth-illustration">🥣</div>
+    </div>
+
+    <div class="auth-panel">
+      <div class="auth-tabs">
+        <button class="auth-tab active">Log in</button>
+        <button class="auth-tab">Sign up</button>
+      </div>
+      <h2>Welcome back, foodie 👋</h2>
+      <p>Log in to see tonight’s ideas, this week’s plan, and what your friends are cooking.</p>
+
+      <div class="field">
+        <label>Email</label>
+        <input type="email" placeholder="you@student.manchester.ac.uk">
+      </div>
+
+      <div class="field">
+        <label>Password</label>
+        <input type="password" placeholder="••••••••">
+      </div>
+
+      <div class="inline-row">
+        <label><input type="checkbox"> Keep me logged in</label>
+        <a href="#">Forgot password?</a>
+      </div>
+
+      <button class="btn-main">Log in to ByteRight</button>
+
+      <div class="small-note">
+        New here? <span>Create a free account</span> to start generating recipes and plans.
+      </div>
+    </div>
+  </div>
+</body>
+</html>

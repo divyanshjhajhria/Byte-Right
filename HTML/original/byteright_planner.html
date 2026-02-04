@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ByteRight – Meal Planner</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg-main:#e8f3d8;
+      --bg-card:#fff7e6;
+      --accent:#7cb342;
+      --accent-alt:#ffd54f;
+      --text-main:#3e2723;
+      --text-muted:#6d4c41;
+      --radius-lg:18px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:"Inter",system-ui,sans-serif;
+      background:radial-gradient(circle at top left,#fdf2d5 0,#e8f3d8 40%,#d7ebc7 100%);
+      color:var(--text-main);
+      padding:80px 32px 40px;
+    }
+    .nav-mini{
+      position:fixed;top:0;left:0;right:0;
+      height:60px;background:rgba(255,248,231,.96);
+      display:flex;align-items:center;justify-content:space-between;
+      padding:0 24px;
+      box-shadow:0 3px 10px rgba(93,64,55,.15);
+      z-index:50;
+    }
+    .nav-logo{display:flex;align-items:center;gap:8px;font-weight:700;letter-spacing:.12em;font-size:.95rem;}
+    .nav-logo-mark{width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 30% 20%,#fff3e0 0,#ffcc80 40%,#fb8c00 100%);display:flex;align-items:center;justify-content:center;font-size:1.1rem;}
+    .layout{max-width:1120px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr;gap:20px;}
+    .panel{
+      background:var(--bg-card);
+      border-radius:var(--radius-lg);
+      padding:18px 18px 16px;
+      box-shadow:0 12px 24px rgba(93,64,55,.2);
+      border:1px solid rgba(139,110,64,.22);
+    }
+    h2{font-size:1.2rem;margin-bottom:4px;}
+    p.small{font-size:.82rem;color:var(--text-muted);margin-bottom:8px;}
+    .grid{
+      margin-top:8px;
+      display:grid;
+      grid-template-columns:80px repeat(7,1fr);
+      gap:6px;
+      font-size:.8rem;
+    }
+    .grid-header{
+      background:#f1f7e4;
+      border-radius:12px;
+      text-align:center;
+      padding:6px 4px;
+      font-weight:600;
+      border:1px solid rgba(124,179,66,.35);
+    }
+    .time-label{
+      display:flex;align-items:center;justify-content:flex-start;
+      color:var(--text-muted);font-weight:600;
+    }
+    .cell{
+      background:#fffdf5;
+      border-radius:12px;
+      padding:6px 6px;
+      border:1px solid rgba(139,110,64,.2);
+      min-height:52px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+    }
+    .cell-title{font-weight:600;font-size:.8rem;}
+    .cell-meta{font-size:.72rem;color:var(--text-muted);}
+    .legend{
+      display:flex;gap:10px;margin-top:10px;font-size:.75rem;color:var(--text-muted);flex-wrap:wrap;
+    }
+    .legend span::before{
+      content:"";
+      display:inline-block;
+      width:10px;height:10px;border-radius:3px;
+      margin-right:5px;
+      background:#e8f3d8;
+      border:1px solid rgba(124,179,66,.5);
+    }
+    .summary-title{font-size:1.05rem;margin-bottom:6px;}
+    .summary-block{
+      margin-top:6px;
+      padding:8px 10px;
+      border-radius:14px;
+      background:#fffdf8;
+      border:1px dashed rgba(139,110,64,.4);
+      font-size:.8rem;
+      color:var(--text-muted);
+    }
+    .list{
+      margin-top:8px;font-size:.8rem;
+    }
+    .list h3{font-size:.9rem;margin-bottom:4px;}
+    ul{list-style:none;margin-top:4px;}
+    li{margin-bottom:3px;display:flex;justify-content:space-between;}
+    li span.qty{color:var(--text-muted);}
+    .saving-card{
+      margin-top:10px;
+      padding:10px;
+      border-radius:14px;
+      background:#e8f3d8;
+      border:1px solid rgba(124,179,66,.4);
+      font-size:.8rem;
+    }
+    .saving-card strong{display:block;font-size:1.05rem;margin-bottom:3px;}
+    @media(max-width:900px){
+      body{padding:76px 16px 32px;}
+      .layout{grid-template-columns:1fr;}
+    }
+  </style>
+</head>
+<body>
+  <header class="nav-mini">
+    <div class="nav-logo">
+      <div class="nav-logo-mark">👦</div>
+      <span>BYTERIGHT</span>
+    </div>
+    <div style="font-size:.85rem;color:#6d4c41;">Weekly Meal Planner</div>
+  </header>
+
+  <main class="layout">
+    <!-- LEFT: GRID -->
+    <section class="panel">
+      <h2>Your week at a glance</h2>
+      <p class="small">Hover over a meal to see cost and cook time. In the app, you’d be able to click to swap or edit.</p>
+
+      <div class="grid">
+        <div></div>
+        <div class="grid-header">Mon</div>
+        <div class="grid-header">Tue</div>
+        <div class="grid-header">Wed</div>
+        <div class="grid-header">Thu</div>
+        <div class="grid-header">Fri</div>
+        <div class="grid-header">Sat</div>
+        <div class="grid-header">Sun</div>
+
+        <div class="time-label">Breakfast</div>
+        <div class="cell"><div class="cell-title">Overnight oats</div><div class="cell-meta">£1.10 · 5 min</div></div>
+        <div class="cell"><div class="cell-title">Peanut butter toast</div><div class="cell-meta">£1.00</div></div>
+        <div class="cell"><div class="cell-title">Smoothie bowl</div><div class="cell-meta">£1.40</div></div>
+        <div class="cell"><div class="cell-title">Eggs on toast</div><div class="cell-meta">£1.25</div></div>
+        <div class="cell"><div class="cell-title">Yoghurt & fruit</div><div class="cell-meta">£1.30</div></div>
+        <div class="cell"><div class="cell-title">Pancakes</div><div class="cell-meta">£1.50</div></div>
+        <div class="cell"><div class="cell-title">Bagel & spread</div><div class="cell-meta">£1.20</div></div>
+
+        <div class="time-label">Dinner</div>
+        <div class="cell"><div class="cell-title">Pasta bake</div><div class="cell-meta">£5.20 · 2 portions</div></div>
+        <div class="cell"><div class="cell-title">Veg stir-fry</div><div class="cell-meta">£4.10</div></div>
+        <div class="cell"><div class="cell-title">Chickpea curry</div><div class="cell-meta">£3.80</div></div>
+        <div class="cell"><div class="cell-title">Buddha bowl</div><div class="cell-meta">£4.90</div></div>
+        <div class="cell"><div class="cell-title">Homemade pizza</div><div class="cell-meta">£6.70</div></div>
+        <div class="cell"><div class="cell-title">Burger night</div><div class="cell-meta">£7.20</div></div>
+        <div class="cell"><div class="cell-title">Leftovers night</div><div class="cell-meta">£0.00 extra</div></div>
+      </div>
+
+      <div class="legend">
+        <span>Main meals</span>
+        <span>Leftovers / use-up</span>
+      </div>
+    </section>
+
+    <!-- RIGHT: SHOPPING LIST + SUMMARY -->
+    <aside class="panel">
+      <div class="summary-title">Auto-generated shopping list</div>
+      <div class="summary-block">
+        ByteRight scans your week and combines overlapping ingredients into one simple list,
+        so you only buy what you actually need.
+      </div>
+
+      <div class="list">
+        <h3>Fresh produce</h3>
+        <ul>
+          <li><span>Tomatoes</span><span class="qty">6 medium</span></li>
+          <li><span>Onions</span><span class="qty">4</span></li>
+          <li><span>Mixed peppers</span><span class="qty">3</span></li>
+          <li><span>Spinach</span><span class="qty">1 bag</span></li>
+        </ul>
+      </div>
+
+      <div class="list">
+        <h3>Store cupboard</h3>
+        <ul>
+          <li><span>Pasta</span><span class="qty">1 kg</span></li>
+          <li><span>Rice</span><span class="qty">500 g</span></li>
+          <li><span>Chickpeas</span><span class="qty">3 tins</span></li>
+          <li><span>Passata / chopped tomatoes</span><span class="qty">2 cartons</span></li>
+        </ul>
+      </div>
+
+      <div class="list">
+        <h3>Fridge & freezer</h3>
+        <ul>
+          <li><span>Cheddar</span><span class="qty">300 g</span></li>
+          <li><span>Yoghurt</span><span class="qty">1 large tub</span></li>
+          <li><span>Frozen veg mix</span><span class="qty">1 bag</span></li>
+        </ul>
+      </div>
+
+      <div class="saving-card">
+        <strong>Estimated cost: £32.50</strong>
+        <span>Based on current supermarket averages for Manchester.</span><br>
+        <span>You save about £11.20 vs. buying meals individually.</span>
+      </div>
+    </aside>
+  </main>
+</body>
+</html>
