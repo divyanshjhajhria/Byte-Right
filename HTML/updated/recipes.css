@@ -79,6 +79,10 @@ textarea {
   align-items: center;
 }
 
+.recipe-card:hover{
+  background: rgba(124, 179, 66, 0.6);
+}
+
 .recipe-icon {
   font-size: 1.5rem;
 }
