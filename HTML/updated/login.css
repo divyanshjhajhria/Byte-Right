@@ -1,7 +1,3 @@
-/* ===========================
-   LOGIN PAGE SPECIFIC STYLES
-   =========================== */
-
 body {
   min-height: 100vh;
   display: flex;
@@ -22,7 +18,6 @@ body {
   border: 2px solid rgba(124, 179, 66, 0.2);
 }
 
-/* HERO SECTION */
 .auth-hero {
   padding: 32px;
   position: relative;
@@ -98,7 +93,6 @@ body {
   opacity: 0.35;
 }
 
-/* AUTH PANEL */
 .auth-panel {
   padding: 32px 28px;
   background: #fffdf5;

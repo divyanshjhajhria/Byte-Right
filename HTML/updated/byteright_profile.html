@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ByteRight – Profile & Settings</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="common.css" />
+  <link rel="stylesheet" href="profile.css" />
+</head>
+<body>
+  <header class="nav-mini">
+    <div class="nav-logo">
+      <div class="nav-logo-mark">
+        <img src="logo.png" alt="ByteRight Logo" width="55" height="55" style="margin-right: 20px;">
+      </div>
+      <span>BYTERIGHT</span>
+    </div>
+    <div class="nav-links">
+      <a href="byteright_dashboard.html" class="nav-link primary">Home</a>
+      <a href="byteright_recipes.html" class="nav-link primary">Recipes</a>
+     <a href="byteright_planner.html" class="nav-link primary">Meal Plan</a>
+      <span>Social</span>
+      <span class="active user-menu">{username} 👤</span>
+    </div>
+  </header>
+
+  <main class="profile-container">
+    <section class="profile-header">
+      <div class="profile-avatar">
+        <div class="avatar-circle">👩‍🍳</div>
+        <button class="btn-change-avatar">Change Photo</button>
+      </div>
+      <div class="profile-info">
+        <h1 id="displayName">{username}</h1>
+        <p class="profile-stats">
+          <span>🍳 24 Recipes Cooked</span>
+          <span>•</span>
+          <span>📅 12 Weeks Planned</span>
+          <span>•</span>
+          <span>👥 8 Friends</span>
+        </p>
+      </div>
+    </section>
+
+    <div class="profile-tabs">
+      <button class="profile-tab active" data-tab="settings">⚙️ Settings</button>
+      <button class="profile-tab" data-tab="friends">👥 Friends</button>
+      <button class="profile-tab" data-tab="activity">📊 Activity</button>
+    </div>
+
+    <div class="tab-content">
+      <div class="tab-pane active" id="settings-pane">
+        <div class="settings-grid">
+          <section class="settings-section">
+            <h2>Personal Information</h2>
+            
+            <div class="setting-item">
+              <label>Full Name</label>
+              <div class="editable-field">
+                <input type="text" id="nameInput" value="{username}" disabled />
+                <button class="btn-edit" id="editNameBtn">✏️ Edit</button>
+                <button class="btn-save hidden" id="saveNameBtn">✓ Save</button>
+                <button class="btn-cancel hidden" id="cancelNameBtn">✗ Cancel</button>
+              </div>
+            </div>
+
+            <div class="setting-item">
+              <label>Email</label>
+              <input type="email" value="you@xyz.com" disabled />
+              <small class="setting-note">Email cannot be changed. Contact support if needed.</small>
+            </div>
+
+            <div class="setting-item">
+              <label>University</label>
+              <input type="text" value="University of Manchester" disabled />
+            </div>
+          </section>
+
+          <section class="settings-section">
+            <h2>Dietary Preferences</h2>
+            
+            <div class="setting-item">
+              <label>Dietary Requirements</label>
+              <div class="checkbox-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="vegCheck" />
+                  <span>🌱 Vegetarian</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="veganCheck" />
+                  <span>🥬 Vegan</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="gfCheck" />
+                  <span>🌾 Gluten-Free</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="dfCheck" />
+                  <span>🥛 Dairy-Free</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="halalCheck" />
+                  <span>🕌 Halal</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="kosherCheck" />
+                  <span>✡️ Kosher</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="setting-item">
+              <label>Allergies & Intolerances</label>
+              <textarea id="allergiesInput" placeholder="e.g., nuts, shellfish, lactose intolerant"></textarea>
+              <small class="setting-note">We'll exclude these from recipe suggestions</small>
+            </div>
+          </section>
+
+          <section class="settings-section">
+            <h2>Budget & Planning</h2>
+            
+            <div class="setting-item">
+              <label>Weekly Food Budget</label>
+              <div class="budget-input-group">
+                <span class="currency-symbol">£</span>
+                <input type="number" id="budgetInput" value="35" min="10" max="200" step="5" />
+                <span class="budget-suffix">per week</span>
+              </div>
+              <div class="budget-slider-container">
+                <input type="range" id="budgetSlider" min="10" max="200" step="5" value="35" />
+                <div class="budget-range-labels">
+                  <span>£10</span>
+                  <span>£200</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="setting-item">
+              <label>Typical Cooking Time</label>
+              <select id="cookingTimeSelect">
+                <option value="quick">Under 15 minutes (Quick meals)</option>
+                <option value="moderate" selected>15-30 minutes (Moderate)</option>
+                <option value="long">30+ minutes (Elaborate cooking)</option>
+                <option value="any">Any duration</option>
+              </select>
+            </div>
+
+            <div class="setting-item">
+              <label>Meal Planning Preference</label>
+              <select id="planningPreference">
+                <option value="weekly" selected>Weekly (7 days)</option>
+                <option value="biweekly">Bi-weekly (14 days)</option>
+                <option value="flexible">Flexible / On-demand</option>
+              </select>
+            </div>
+          </section>
+
+          <section class="settings-section">
+            <h2>Security</h2>
+            
+            <div class="setting-item">
+              <label>Current Password</label>
+              <input type="password" id="currentPassword" placeholder="Enter current password" />
+            </div>
+
+            <div class="setting-item">
+              <label>New Password</label>
+              <input type="password" id="newPassword" placeholder="Enter new password" />
+            </div>
+
+            <div class="setting-item">
+              <label>Confirm New Password</label>
+              <input type="password" id="confirmPassword" placeholder="Confirm new password" />
+            </div>
+
+            <button class="btn-change-password" id="changePasswordBtn">🔒 Change Password</button>
+            <div id="passwordMessage" class="message-box hidden"></div>
+          </section>
+
+          <div class="settings-actions">
+            <button class="btn-save-all" id="saveAllBtn">💾 Save All Changes</button>
+            <div id="saveMessage" class="message-box hidden"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane" id="friends-pane">
+        <div class="friends-layout">
+          <section class="friends-section">
+            <div class="section-header">
+              <h2>My Friends (8)</h2>
+              <button class="btn-add-friend" id="addFriendBtn">+ Add Friend</button>
+            </div>
+
+            <div id="addFriendForm" class="add-friend-form hidden">
+              <input type="text" id="friendEmailInput" placeholder="Enter friend's email or username" />
+              <div class="add-friend-actions">
+                <button class="btn-send-request" id="sendRequestBtn">Send Request</button>
+                <button class="btn-cancel-add" id="cancelAddBtn">Cancel</button>
+              </div>
+            </div>
+
+            <div class="friends-list" id="friendsList">
+              <div class="friend-item">
+                <div class="friend-avatar">👨‍🍳</div>
+                <div class="friend-info">
+                  <div class="friend-name">James Chen</div>
+                  <div class="friend-meta">Cooked 15 recipes together</div>
+                </div>
+                <button class="btn-friend-action">Message</button>
+              </div>
+
+              <div class="friend-item">
+                <div class="friend-avatar">👩‍🍳</div>
+                <div class="friend-info">
+                  <div class="friend-name">Emma Thompson</div>
+                  <div class="friend-meta">Following your meal plans</div>
+                </div>
+                <button class="btn-friend-action">Message</button>
+              </div>
+
+              <div class="friend-item">
+                <div class="friend-avatar">🧑‍🍳</div>
+                <div class="friend-info">
+                  <div class="friend-name">Alex Rodriguez</div>
+                  <div class="friend-meta">Shared 8 recipes with you</div>
+                </div>
+                <button class="btn-friend-action">Message</button>
+              </div>
+
+              <div class="friend-item">
+                <div class="friend-avatar">👨‍🍳</div>
+                <div class="friend-info">
+                  <div class="friend-name">David Park</div>
+                  <div class="friend-meta">Active 2 hours ago</div>
+                </div>
+                <button class="btn-friend-action">Message</button>
+              </div>
+
+              <div class="friend-item">
+                <div class="friend-avatar">👩‍🍳</div>
+                <div class="friend-info">
+                  <div class="friend-name">Olivia Brown</div>
+                  <div class="friend-meta">Your meal planning buddy</div>
+                </div>
+                <button class="btn-friend-action">Message</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="requests-section">
+            <h2>Friend Requests (3)</h2>
+            
+            <div class="requests-list" id="requestsList">
+              <div class="request-item">
+                <div class="request-avatar">👨‍🍳</div>
+                <div class="request-info">
+                  <div class="request-name">Tom Williams</div>
+                  <div class="request-meta">Wants to follow your recipes</div>
+                </div>
+                <div class="request-actions">
+                  <button class="btn-accept">✓ Accept</button>
+                  <button class="btn-decline">✗ Decline</button>
+                </div>
+              </div>
+
+              <div class="request-item">
+                <div class="request-avatar">👩‍🍳</div>
+                <div class="request-info">
+                  <div class="request-name">Lisa Anderson</div>
+                  <div class="request-meta">Mutual friend with Emma</div>
+                </div>
+                <div class="request-actions">
+                  <button class="btn-accept">✓ Accept</button>
+                  <button class="btn-decline">✗ Decline</button>
+                </div>
+              </div>
+
+              <div class="request-item">
+                <div class="request-avatar">🧑‍🍳</div>
+                <div class="request-info">
+                  <div class="request-name">Chris Martinez</div>
+                  <div class="request-meta">Also at University of Manchester</div>
+                </div>
+                <div class="request-actions">
+                  <button class="btn-accept">✓ Accept</button>
+                  <button class="btn-decline">✗ Decline</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="requestsEmpty" class="empty-state hidden">
+              <div class="empty-icon">✨</div>
+              <p>No pending friend requests</p>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div class="tab-pane" id="activity-pane">
+        <div class="activity-layout">
+          <section class="activity-section">
+            <h2>Recent Activity</h2>
+            
+            <div class="activity-list">
+              <div class="activity-item">
+                <div class="activity-icon">🍳</div>
+                <div class="activity-content">
+                  <div class="activity-text">You cooked <strong>One-Pot Tomato Pasta</strong></div>
+                  <div class="activity-time">2 days ago</div>
+                </div>
+              </div>
+
+              <div class="activity-item">
+                <div class="activity-icon">📅</div>
+                <div class="activity-content">
+                  <div class="activity-text">Created a new meal plan for this week</div>
+                  <div class="activity-time">4 days ago</div>
+                </div>
+              </div>
+
+              <div class="activity-item">
+                <div class="activity-icon">👥</div>
+                <div class="activity-content">
+                  <div class="activity-text">Added <strong>Emma Thompson</strong> as a friend</div>
+                  <div class="activity-time">1 week ago</div>
+                </div>
+              </div>
+
+              <div class="activity-item">
+                <div class="activity-icon">💾</div>
+                <div class="activity-content">
+                  <div class="activity-text">Saved <strong>Chickpea Curry Bowl</strong> to favorites</div>
+                  <div class="activity-time">1 week ago</div>
+                </div>
+              </div>
+
+              <div class="activity-item">
+                <div class="activity-icon">📸</div>
+                <div class="activity-content">
+                  <div class="activity-text">Shared a photo of your Veggie Stir-fry</div>
+                  <div class="activity-time">2 weeks ago</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="stats-section">
+            <h2>Your Stats</h2>
+            
+            <div class="stats-cards">
+              <div class="stat-card">
+                <div class="stat-card-value">£127</div>
+                <div class="stat-card-label">Total Saved</div>
+                <div class="stat-card-trend">↑ £23 vs last month</div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-card-value">42</div>
+                <div class="stat-card-label">Meals Cooked</div>
+                <div class="stat-card-trend">↑ 8 vs last month</div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-card-value">18 min</div>
+                <div class="stat-card-label">Avg Cook Time</div>
+                <div class="stat-card-trend">Perfect for students!</div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="profile-footer">
+    <div>ByteRight • Student Meal Planning Made Easy</div>
+    <div>
+      <a href="byteright_dashboard.html">Dashboard</a> • 
+      <a href="byteright_login.html">Logout</a>
+    </div>
+  </footer>
+
+  <script>
+    const tabs = document.querySelectorAll('.profile-tab');
+    const panes = document.querySelectorAll('.tab-pane');
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const targetTab = tab.dataset.tab;
+        
+        tabs.forEach(t => t.classList.remove('active'));
+        panes.forEach(p => p.classList.remove('active'));
+        
+        tab.classList.add('active');
+        document.getElementById(`${targetTab}-pane`).classList.add('active');
+      });
+    });
+
+    const nameInput = document.getElementById('nameInput');
+    const displayName = document.getElementById('displayName');
+    const editNameBtn = document.getElementById('editNameBtn');
+    const saveNameBtn = document.getElementById('saveNameBtn');
+    const cancelNameBtn = document.getElementById('cancelNameBtn');
+    let originalName = nameInput.value;
+
+    editNameBtn.addEventListener('click', () => {
+      nameInput.disabled = false;
+      nameInput.focus();
+      nameInput.select();
+      editNameBtn.classList.add('hidden');
+      saveNameBtn.classList.remove('hidden');
+      cancelNameBtn.classList.remove('hidden');
+    });
+
+    saveNameBtn.addEventListener('click', () => {
+      const newName = nameInput.value.trim();
+      if (newName) {
+        displayName.textContent = newName;
+        originalName = newName;
+        nameInput.disabled = true;
+        editNameBtn.classList.remove('hidden');
+        saveNameBtn.classList.add('hidden');
+        cancelNameBtn.classList.add('hidden');
+        showMessage('saveMessage', 'Name updated successfully! ✓', 'success');
+      }
+    });
+
+    cancelNameBtn.addEventListener('click', () => {
+      nameInput.value = originalName;
+      nameInput.disabled = true;
+      editNameBtn.classList.remove('hidden');
+      saveNameBtn.classList.add('hidden');
+      cancelNameBtn.classList.add('hidden');
+    });
+
+    const budgetInput = document.getElementById('budgetInput');
+    const budgetSlider = document.getElementById('budgetSlider');
+
+    budgetInput.addEventListener('input', (e) => {
+      budgetSlider.value = e.target.value;
+    });
+
+    budgetSlider.addEventListener('input', (e) => {
+      budgetInput.value = e.target.value;
+    });
+
+    const changePasswordBtn = document.getElementById('changePasswordBtn');
+    const currentPassword = document.getElementById('currentPassword');
+    const newPassword = document.getElementById('newPassword');
+    const confirmPassword = document.getElementById('confirmPassword');
+
+    changePasswordBtn.addEventListener('click', () => {
+      if (!currentPassword.value) {
+        showMessage('passwordMessage', 'Please enter your current password', 'error');
+        return;
+      }
+      if (!newPassword.value || newPassword.value.length < 8) {
+        showMessage('passwordMessage', 'New password must be at least 8 characters', 'error');
+        return;
+      }
+      if (newPassword.value !== confirmPassword.value) {
+        showMessage('passwordMessage', 'Passwords do not match', 'error');
+        return;
+      }
+
+      showMessage('passwordMessage', 'Password changed successfully! ✓', 'success');
+      currentPassword.value = '';
+      newPassword.value = '';
+      confirmPassword.value = '';
+    });
+
+    const saveAllBtn = document.getElementById('saveAllBtn');
+    saveAllBtn.addEventListener('click', () => {
+      const settings = {
+        name: nameInput.value,
+        vegetarian: document.getElementById('vegCheck').checked,
+        vegan: document.getElementById('veganCheck').checked,
+        glutenFree: document.getElementById('gfCheck').checked,
+        dairyFree: document.getElementById('dfCheck').checked,
+        halal: document.getElementById('halalCheck').checked,
+        kosher: document.getElementById('kosherCheck').checked,
+        allergies: document.getElementById('allergiesInput').value,
+        budget: budgetInput.value,
+        cookingTime: document.getElementById('cookingTimeSelect').value,
+        planningPreference: document.getElementById('planningPreference').value
+      };
+
+      console.log('Saving settings:', settings);
+      showMessage('saveMessage', 'All changes saved successfully! ✓', 'success');
+    });
+
+    const addFriendBtn = document.getElementById('addFriendBtn');
+    const addFriendForm = document.getElementById('addFriendForm');
+    const sendRequestBtn = document.getElementById('sendRequestBtn');
+    const cancelAddBtn = document.getElementById('cancelAddBtn');
+    const friendEmailInput = document.getElementById('friendEmailInput');
+
+    addFriendBtn.addEventListener('click', () => {
+      addFriendForm.classList.remove('hidden');
+      friendEmailInput.focus();
+    });
+
+    cancelAddBtn.addEventListener('click', () => {
+      addFriendForm.classList.add('hidden');
+      friendEmailInput.value = '';
+    });
+
+    sendRequestBtn.addEventListener('click', () => {
+      const email = friendEmailInput.value.trim();
+      if (email) {
+        alert(`Friend request sent to ${email}! ✓`);
+        addFriendForm.classList.add('hidden');
+        friendEmailInput.value = '';
+      }
+    });
+
+    const requestsList = document.getElementById('requestsList');
+    const requestsEmpty = document.getElementById('requestsEmpty');
+
+    requestsList.addEventListener('click', (e) => {
+      if (e.target.classList.contains('btn-accept')) {
+        const requestItem = e.target.closest('.request-item');
+        const name = requestItem.querySelector('.request-name').textContent;
+        
+        const friendsList = document.getElementById('friendsList');
+        const newFriend = document.createElement('div');
+        newFriend.className = 'friend-item';
+        newFriend.innerHTML = `
+          <div class="friend-avatar">👤</div>
+          <div class="friend-info">
+            <div class="friend-name">${name}</div>
+            <div class="friend-meta">Just connected!</div>
+          </div>
+          <button class="btn-friend-action">Message</button>
+        `;
+        friendsList.appendChild(newFriend);
+        
+        requestItem.remove();
+        
+        if (requestsList.children.length === 0) {
+          requestsList.classList.add('hidden');
+          requestsEmpty.classList.remove('hidden');
+          document.querySelector('.requests-section h2').textContent = 'Friend Requests (0)';
+        } else {
+          const count = requestsList.children.length;
+          document.querySelector('.requests-section h2').textContent = `Friend Requests (${count})`;
+        }
+        
+        alert(`You are now friends with ${name}! ✓`);
+      }
+      
+      if (e.target.classList.contains('btn-decline')) {
+        const requestItem = e.target.closest('.request-item');
+        const name = requestItem.querySelector('.request-name').textContent;
+        requestItem.remove();
+        
+        if (requestsList.children.length === 0) {
+          requestsList.classList.add('hidden');
+          requestsEmpty.classList.remove('hidden');
+          document.querySelector('.requests-section h2').textContent = 'Friend Requests (0)';
+        } else {
+          const count = requestsList.children.length;
+          document.querySelector('.requests-section h2').textContent = `Friend Requests (${count})`;
+        }
+        
+        alert(`Friend request from ${name} declined.`);
+      }
+    });
+
+    function showMessage(elementId, message, type) {
+      const messageBox = document.getElementById(elementId);
+      messageBox.textContent = message;
+      messageBox.className = `message-box ${type}`;
+      messageBox.classList.remove('hidden');
+      
+      setTimeout(() => {
+        messageBox.classList.add('hidden');
+      }, 4000);
+    }
+  </script>
+</body>
+</html>

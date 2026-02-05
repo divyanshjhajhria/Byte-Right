@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
   
-  <!-- Common + Page-specific CSS -->
   <link rel="stylesheet" href="common.css">
   <link rel="stylesheet" href="login.css">
 </head>
@@ -69,7 +68,6 @@
   const panelText = document.querySelector(".auth-panel p");
   const fieldsContainer = document.querySelector(".auth-panel");
 
-  // Store the two forms as HTML templates
   const loginForm = `
       <div class="field">
         <label>Email</label>
@@ -113,7 +111,6 @@
       <button class="btn-main">Create my ByteRight account</button>
   `;
 
-  // Switch logic
   tabs.forEach((tab, index) => {
     tab.addEventListener("click", () => {
       tabs.forEach(t => t.classList.remove("active"));

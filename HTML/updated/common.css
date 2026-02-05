@@ -1,9 +1,3 @@
-/* ===========================
-   BYTERIGHT COMMON STYLES
-   Shared across all pages
-   =========================== */
-
-/* CSS VARIABLES */
 :root {
   --bg-main: #e8f3d8;
   --bg-card: #fff7e6;
@@ -26,14 +20,12 @@
   --transition-fast: 0.2s ease-out;
 }
 
-/* RESET */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-/* BODY BASE */
 body {
   font-family: "Inter", "Nunito", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background: radial-gradient(circle at top left, #fdf2d5 0, #e8f3d8 40%, #d7ebc7 100%);
@@ -41,7 +33,6 @@ body {
   min-height: 100vh;
 }
 
-/* COMMON NAVIGATION */
 .nav-mini {
   position: fixed;
   top: 0;
@@ -120,7 +111,6 @@ body {
   box-shadow: 0 6px 18px rgba(124, 179, 66, 0.45);
 }
 
-/* PANELS & CARDS */
 .panel {
   background: var(--bg-card);
   border-radius: var(--radius-lg);
@@ -137,7 +127,6 @@ body {
   box-shadow: 0 8px 18px rgba(121, 85, 72, 0.1);
 }
 
-/* BUTTONS */
 .btn,
 .btn-main,
 .btn-gen {
@@ -174,7 +163,6 @@ body {
   border: 1px solid var(--border-soft);
 }
 
-/* FORM INPUTS */
 input,
 textarea,
 select {
@@ -202,7 +190,6 @@ textarea {
   min-height: 100px;
 }
 
-/* CHIPS & TAGS */
 .chip,
 .tag,
 .pill {
@@ -227,7 +214,6 @@ textarea {
   color: var(--text-muted);
 }
 
-/* HEADINGS */
 h1 {
   font-size: 2rem;
   font-weight: 800;
@@ -248,7 +234,6 @@ h3 {
   color: var(--text-main);
 }
 
-/* TEXT UTILITIES */
 .small,
 p.small {
   font-size: 0.82rem;
@@ -264,7 +249,6 @@ strong {
   color: var(--text-dark);
 }
 
-/* LISTS */
 ul {
   list-style: none;
 }
@@ -273,7 +257,6 @@ li {
   margin-bottom: 8px;
 }
 
-/* LAYOUT UTILITIES */
 .container {
   max-width: 1400px;
   margin: 0 auto;
@@ -285,7 +268,6 @@ li {
   margin: 0 auto;
 }
 
-/* ACCENT COLORS */
 .accent-text {
   color: var(--accent);
 }
@@ -295,12 +277,10 @@ li {
   color: #fff;
 }
 
-/* SVG DISPLAY */
 svg {
   display: block;
 }
 
-/* RESPONSIVE UTILITIES */
 @media (max-width: 900px) {
   body {
     padding: 76px 16px 32px;
