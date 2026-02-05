@@ -13,7 +13,6 @@ body {
   gap: 24px;
 }
 
-/* FEED SECTION */
 .feed-section {
   display: flex;
   flex-direction: column;
@@ -51,7 +50,6 @@ body {
   box-shadow: 0 8px 20px rgba(124, 179, 66, 0.4);
 }
 
-/* CREATE POST CARD */
 .create-post-card {
   background: var(--bg-card);
   border-radius: 18px;
@@ -162,7 +160,6 @@ body {
   background: var(--accent-green-dark);
 }
 
-/* POSTS LIST */
 .posts-list {
   display: flex;
   flex-direction: column;
@@ -355,7 +352,6 @@ body {
   color: var(--accent-green-dark);
 }
 
-/* SIDEBAR */
 .sidebar-section {
   display: flex;
   flex-direction: column;
@@ -554,7 +550,6 @@ body {
   display: none !important;
 }
 
-/* RESPONSIVE */
 @media (max-width: 900px) {
   .social-layout {
     grid-template-columns: 1fr;
