@@ -1,135 +1,332 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data Flow</title>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Source+Sans+Pro:wght@400;600&display=swap" rel="stylesheet">
-    
-    <link rel="stylesheet" href="common.css">
-    <link rel="stylesheet" href="social.css">
+  <meta charset="UTF-8">
+  <title>ByteRight – Social Feed</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="common.css">
+  <link rel="stylesheet" href="social.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Data Flow</h1>
-        
-        <div class="main-content">
-            <div class="flow-description">
-                <h2>System Overview</h2>
-                
-                <div class="flow-item">
-                    <strong>Login</strong> <span class="arrow">→</span> <strong>Home</strong>
-                    <p>User logs in, session starts, homepage loads personalized content.</p>
-                </div>
-                
-                <div class="flow-item">
-                    <strong>Home</strong> <span class="arrow">→</span> <strong>Features</strong>
-                    <p>Home links to recipe generator, planner, templates, etc., checking session each time.</p>
-                </div>
-                
-                <div class="flow-item">
-                    <strong>Pages</strong> <span class="arrow">↔</span> <strong>Database</strong>
-                    <p>Each feature page sends requests to PHP, which reads/writes MySQL data.</p>
-                </div>
-                
-                <div class="flow-item">
-                    <strong>Saving Data</strong>
-                    <p>Forms send POST requests, PHP updates the database, and pages refresh with new data.</p>
-                </div>
-                
-                <div class="flow-item">
-                    <strong>Consistent Navigation</strong>
-                    <p>Same navbar across pages so users move smoothly through the site.</p>
-                </div>
-            </div>
-            
-            <div class="architecture">
-                <div class="arch-diagram">
-                    <div class="client-box">
-                        <div class="label">Client</div>
-                        <div class="sub-label">Browser</div>
-                    </div>
-                    
-                    <div class="connector">
-                        <div class="line"></div>
-                        <span>HTTP</span>
-                        <div class="arrow-down"></div>
-                    </div>
-                    
-                    <div class="middle-section">
-                        <div class="frontend-box">
-                            <div class="section-label">Frontend</div>
-                            <div class="component-flow">
-                                <div class="component">HTML</div>
-                                <div class="component-connector">↓</div>
-                                <div class="component">Templates</div>
-                                <div class="component-connector">↓</div>
-                                <div class="component">CSS</div>
-                                <div class="component-connector">↓</div>
-                                <div class="component">JavaScript</div>
-                            </div>
-                        </div>
-                        
-                        <div class="horizontal-connector">
-                            <span class="h-arrow">←</span>
-                            <div class="h-line"></div>
-                            <span>Backend</span>
-                            <div class="h-line"></div>
-                            <span class="h-arrow">→</span>
-                        </div>
-                        
-                        <div class="backend-box">
-                            <div class="section-label">Backend</div>
-                            <div class="backend-list">
-                                <div class="backend-item">Authentication</div>
-                                <div class="backend-item">Recipe Generator</div>
-                                <div class="backend-item">Social Feed</div>
-                                <div class="backend-item">Meal Planner</div>
-                                <div class="backend-item">Shopping List</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="database-section">
-                        <div class="connector">
-                            <div class="arrow-down" style="transform: rotate(180deg); margin-bottom: 5px;"></div>
-                            <div class="sql-label">SQL</div>
-                            <div class="arrow-down" style="margin-top: 5px;"></div>
-                        </div>
-                        
-                        <div class="database-container">
-                            <div class="db-label">Database</div>
-                            <div class="db-tables">
-                                <div class="db-table">Users</div>
-                                <div class="db-table">Recipes</div>
-                                <div class="db-table">Friends</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="info-cards">
-            <div class="info-card">
-                <h3>POST - Form Submissions</h3>
-                <p>Used for login, registration, creating posts, and updating meal plans</p>
-            </div>
-            <div class="info-card">
-                <h3>GET - Data Fetching</h3>
-                <p>Used for loading recipes, retrieving posts, and displaying meal plans</p>
-            </div>
-            <div class="info-card">
-                <h3>SESSION - Login Persistence</h3>
-                <p>PHP sessions maintain user authentication across page visits</p>
-            </div>
-        </div>
-        
-        <div class="footer-bar">
-            <span>All sensitive data encrypted in transit</span>
-            <span>Form data validated server-side</span>
-            <span>Database queries use prepared statements</span>
-        </div>
+  <header class="nav-mini">
+    <div class="nav-logo">
+      <div class="nav-logo-mark">
+        <img src="logo.png" alt="ByteRight Logo" width="55" height="55" style="margin-right: 20px;">
+      </div>
+      <span>BYTERIGHT</span>
     </div>
+    <div class="nav-links">
+      <a href="byteright_dashboard.html" class="nav-link primary">Home</a>
+      <a href="byteright_recipes.html" class="nav-link primary">Recipes</a>
+      <a href="byteright_planner.html" class="nav-link primary">Meal Plan</a>
+      <span class="active">Social</span>
+      <a href="byteright_profile.html" class="nav-link primary">{username} 👤</a>
+    </div>
+  </header>
+
+  <main class="social-container">
+    <div class="social-layout">
+      <section class="feed-section">
+        <div class="feed-header">
+          <h2>Your Feed 📸</h2>
+          <button class="btn-create-post">+ Create Post</button>
+        </div>
+
+        <div class="create-post-card hidden" id="createPostCard">
+          <div class="create-post-header">
+            <div class="user-avatar-small">👤</div>
+            <div>
+              <div class="post-username">{username}</div>
+              <div class="post-time">Share what you're cooking...</div>
+            </div>
+          </div>
+          <textarea class="post-input" placeholder="What did you cook today? Share your recipe, tips, or just show off! 🍳"></textarea>
+          <div class="post-actions">
+            <button class="btn-upload-photo">📷 Add Photo</button>
+            <div class="post-submit-group">
+              <button class="btn-cancel-post">Cancel</button>
+              <button class="btn-submit-post">Post to Feed</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="posts-list">
+          <article class="post-card">
+            <div class="post-header">
+              <div class="user-avatar">🧑</div>
+              <div class="post-user-info">
+                <div class="post-username">Sarah Mitchell</div>
+                <div class="post-time">2 hours ago</div>
+              </div>
+              <button class="post-menu">⋯</button>
+            </div>
+            <div class="post-content">
+              <p>Finally nailed the perfect veggie stir-fry! 🥢 Used up all my leftover veggies and it came out amazing. Pro tip: high heat is your friend!</p>
+            </div>
+            <div class="post-image">
+              <div class="placeholder-image stir-fry">🥘</div>
+            </div>
+            <div class="post-recipe-tag">
+              <span class="recipe-link">Recipe: Quick Veggie Stir-fry</span>
+              <span class="recipe-cost">£4.10 • 15 min</span>
+            </div>
+            <div class="post-stats">
+              <span>24 likes</span>
+              <span>5 comments</span>
+            </div>
+            <div class="post-actions-bar">
+              <button class="action-btn">👍 Like</button>
+              <button class="action-btn">💬 Comment</button>
+              <button class="action-btn">🔖 Save</button>
+              <button class="action-btn">📤 Share</button>
+            </div>
+          </article>
+
+          <article class="post-card">
+            <div class="post-header">
+              <div class="user-avatar">👨</div>
+              <div class="post-user-info">
+                <div class="post-username">Marcus Chen</div>
+                <div class="post-time">5 hours ago</div>
+              </div>
+              <button class="post-menu">⋯</button>
+            </div>
+            <div class="post-content">
+              <p>Meal prep Sunday done! ✅ Made 5 portions of chickpea curry for under £15. My wallet and future-me are both happy 😎</p>
+            </div>
+            <div class="post-image">
+              <div class="placeholder-image curry">🍛</div>
+            </div>
+            <div class="post-recipe-tag">
+              <span class="recipe-link">Recipe: Student Chickpea Curry</span>
+              <span class="recipe-cost">£2.80/portion • 25 min</span>
+            </div>
+            <div class="post-stats">
+              <span>42 likes</span>
+              <span>12 comments</span>
+            </div>
+            <div class="post-actions-bar">
+              <button class="action-btn active">👍 Liked</button>
+              <button class="action-btn">💬 Comment</button>
+              <button class="action-btn">🔖 Save</button>
+              <button class="action-btn">📤 Share</button>
+            </div>
+          </article>
+
+          <article class="post-card">
+            <div class="post-header">
+              <div class="user-avatar">👩</div>
+              <div class="post-user-info">
+                <div class="post-username">Emma Patel</div>
+                <div class="post-time">Yesterday</div>
+              </div>
+              <button class="post-menu">⋯</button>
+            </div>
+            <div class="post-content">
+              <p>Who else is obsessed with overnight oats? 🥣 Game changer for busy mornings. Added banana, peanut butter and a drizzle of honey. Chef's kiss! 👨‍🍳💋</p>
+            </div>
+            <div class="post-image">
+              <div class="placeholder-image oats">🥣</div>
+            </div>
+            <div class="post-recipe-tag">
+              <span class="recipe-link">Recipe: PB Banana Overnight Oats</span>
+              <span class="recipe-cost">£1.20 • 5 min prep</span>
+            </div>
+            <div class="post-stats">
+              <span>31 likes</span>
+              <span>8 comments</span>
+            </div>
+            <div class="post-actions-bar">
+              <button class="action-btn">👍 Like</button>
+              <button class="action-btn">💬 Comment</button>
+              <button class="action-btn active">🔖 Saved</button>
+              <button class="action-btn">📤 Share</button>
+            </div>
+          </article>
+
+          <article class="post-card">
+            <div class="post-header">
+              <div class="user-avatar">🧑</div>
+              <div class="post-user-info">
+                <div class="post-username">James Wilson</div>
+                <div class="post-time">2 days ago</div>
+              </div>
+              <button class="post-menu">⋯</button>
+            </div>
+            <div class="post-content">
+              <p>Late night pasta experiment turned out better than expected! 🍝 Sometimes the best recipes happen when you're just winging it with whatever's in the fridge lol</p>
+            </div>
+            <div class="post-image">
+              <div class="placeholder-image pasta">🍝</div>
+            </div>
+            <div class="post-recipe-tag">
+              <span class="recipe-link">Recipe: Garlic Butter Pasta</span>
+              <span class="recipe-cost">£3.50 • 12 min</span>
+            </div>
+            <div class="post-stats">
+              <span>18 likes</span>
+              <span>3 comments</span>
+            </div>
+            <div class="post-actions-bar">
+              <button class="action-btn">👍 Like</button>
+              <button class="action-btn">💬 Comment</button>
+              <button class="action-btn">🔖 Save</button>
+              <button class="action-btn">📤 Share</button>
+            </div>
+          </article>
+
+          <article class="post-card">
+            <div class="post-header">
+              <div class="user-avatar">👩</div>
+              <div class="post-user-info">
+                <div class="post-username">Olivia Rodriguez</div>
+                <div class="post-time">3 days ago</div>
+              </div>
+              <button class="post-menu">⋯</button>
+            </div>
+            <div class="post-content">
+              <p>First time making homemade pizza and I'm never going back to takeaway! 🍕 Way cheaper and honestly tastes better. Plus you can pile on whatever toppings you want!</p>
+            </div>
+            <div class="post-image">
+              <div class="placeholder-image pizza">🍕</div>
+            </div>
+            <div class="post-recipe-tag">
+              <span class="recipe-link">Recipe: Easy Homemade Pizza</span>
+              <span class="recipe-cost">£5.20 • 30 min</span>
+            </div>
+            <div class="post-stats">
+              <span>56 likes</span>
+              <span>15 comments</span>
+            </div>
+            <div class="post-actions-bar">
+              <button class="action-btn">👍 Like</button>
+              <button class="action-btn">💬 Comment</button>
+              <button class="action-btn">🔖 Save</button>
+              <button class="action-btn">📤 Share</button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <aside class="sidebar-section">
+        <div class="sidebar-card">
+          <h3>Your Cooking Stats 📊</h3>
+          <div class="stat-row">
+            <span class="stat-label">Posts shared</span>
+            <span class="stat-value">8</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Total likes</span>
+            <span class="stat-value">124</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Recipes saved</span>
+            <span class="stat-value">12</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Following</span>
+            <span class="stat-value">23 friends</span>
+          </div>
+        </div>
+
+        <div class="sidebar-card">
+          <h3>Active Cooks Today 🔥</h3>
+          <div class="active-users-list">
+            <div class="active-user">
+              <div class="user-avatar-tiny">🧑</div>
+              <div class="active-user-info">
+                <div class="active-user-name">Sarah Mitchell</div>
+                <div class="active-user-status">Cooking now</div>
+              </div>
+              <div class="status-dot"></div>
+            </div>
+            <div class="active-user">
+              <div class="user-avatar-tiny">👨</div>
+              <div class="active-user-info">
+                <div class="active-user-name">Marcus Chen</div>
+                <div class="active-user-status">Posted 5h ago</div>
+              </div>
+            </div>
+            <div class="active-user">
+              <div class="user-avatar-tiny">👩</div>
+              <div class="active-user-info">
+                <div class="active-user-name">Emma Patel</div>
+                <div class="active-user-status">Posted yesterday</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sidebar-card">
+          <h3>Trending Recipes 🌟</h3>
+          <div class="trending-list">
+            <div class="trending-item">
+              <span class="trending-icon">🍝</span>
+              <div class="trending-info">
+                <div class="trending-name">Garlic Butter Pasta</div>
+                <div class="trending-meta">84 cooks this week</div>
+              </div>
+            </div>
+            <div class="trending-item">
+              <span class="trending-icon">🥘</span>
+              <div class="trending-info">
+                <div class="trending-name">Veggie Stir-fry</div>
+                <div class="trending-meta">67 cooks this week</div>
+              </div>
+            </div>
+            <div class="trending-item">
+              <span class="trending-icon">🍕</span>
+              <div class="trending-info">
+                <div class="trending-name">Homemade Pizza</div>
+                <div class="trending-meta">52 cooks this week</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sidebar-card challenge-card">
+          <h3>Weekly Challenge 🏆</h3>
+          <p class="challenge-text">Cook 3 different recipes this week and share them!</p>
+          <div class="challenge-progress">
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: 33%"></div>
+            </div>
+            <span class="progress-text">1 of 3 completed</span>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    const createPostBtn = document.querySelector('.btn-create-post');
+    const createPostCard = document.getElementById('createPostCard');
+    const cancelPostBtn = document.querySelector('.btn-cancel-post');
+
+    createPostBtn.addEventListener('click', () => {
+      createPostCard.classList.toggle('hidden');
+    });
+
+    cancelPostBtn.addEventListener('click', () => {
+      createPostCard.classList.add('hidden');
+    });
+
+    // Like button toggle
+    const actionBtns = document.querySelectorAll('.action-btn');
+    actionBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        if (btn.textContent.includes('Like')) {
+          btn.classList.toggle('active');
+          if (btn.classList.contains('active')) {
+            btn.innerHTML = '👍 Liked';
+          } else {
+            btn.innerHTML = '👍 Like';
+          }
+        }
+      });
+    });
+  </script>
 </body>
 </html>
