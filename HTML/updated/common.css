@@ -39,7 +39,7 @@ body {
   left: 0;
   right: 0;
   height: 60px;
-  background: rgba(255, 248, 231, 0.96);
+  background: rgb(253, 245, 212);
   display: flex;
   align-items: center;
   justify-content: space-between;
