@@ -300,32 +300,6 @@
     </div>
   </main>
 
-  <script>
-    const createPostBtn = document.querySelector('.btn-create-post');
-    const createPostCard = document.getElementById('createPostCard');
-    const cancelPostBtn = document.querySelector('.btn-cancel-post');
-
-    createPostBtn.addEventListener('click', () => {
-      createPostCard.classList.toggle('hidden');
-    });
-
-    cancelPostBtn.addEventListener('click', () => {
-      createPostCard.classList.add('hidden');
-    });
-
-    const actionBtns = document.querySelectorAll('.action-btn');
-    actionBtns.forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        if (btn.textContent.includes('Like')) {
-          btn.classList.toggle('active');
-          if (btn.classList.contains('active')) {
-            btn.innerHTML = '👍 Liked';
-          } else {
-            btn.innerHTML = '👍 Like';
-          }
-        }
-      });
-    });
-  </script>
+  <script src="app.js"></script>
 </body>
 </html>
