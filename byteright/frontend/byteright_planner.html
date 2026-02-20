@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ByteRight – Meal Planner</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="common.css">
+  <link rel="stylesheet" href="planner.css">
+</head>
+<body>
+  <header class="nav-mini">
+    <div class="nav-logo">
+      <div class="nav-logo-mark">
+        <img src="logo.png" alt="ByteRight Logo" width="50" height="50" style="margin-right: 20px;">
+      </div>
+      <span>BYTERIGHT</span>
+    </div>
+    <div class="nav-links">
+      <a href="byteright_dashboard.html" class="nav-link primary">Home</a>
+      <a href="byteright_recipes.html" class="nav-link primary">Recipes</a>
+      <span class="active">Meal Plan</span>
+      <a href="byteright_social.html" class="nav-link primary">Social</a>
+      <a href="byteright_profile.html" class="nav-link primary">{username} 👤</a>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel">
+      <h2>Your week at a glance</h2>
+      <p class="small">Hover over a meal to see cost and cook time. In the app, you'd be able to click to swap or edit.</p>
+
+      <div class="grid">
+        <div></div>
+        <div class="grid-header">Mon</div>
+        <div class="grid-header">Tue</div>
+        <div class="grid-header">Wed</div>
+        <div class="grid-header">Thu</div>
+        <div class="grid-header">Fri</div>
+        <div class="grid-header">Sat</div>
+        <div class="grid-header">Sun</div>
+
+        <div class="time-label">Breakfast</div>
+        <div class="cell"><div class="cell-title">Overnight oats</div><div class="cell-meta">£1.10 · 5 min</div></div>
+        <div class="cell"><div class="cell-title">Peanut butter toast</div><div class="cell-meta">£1.00</div></div>
+        <div class="cell"><div class="cell-title">Smoothie bowl</div><div class="cell-meta">£1.40</div></div>
+        <div class="cell"><div class="cell-title">Eggs on toast</div><div class="cell-meta">£1.25</div></div>
+        <div class="cell"><div class="cell-title">Yoghurt & fruit</div><div class="cell-meta">£1.30</div></div>
+        <div class="cell"><div class="cell-title">Pancakes</div><div class="cell-meta">£1.50</div></div>
+        <div class="cell"><div class="cell-title">Bagel & spread</div><div class="cell-meta">£1.20</div></div>
+
+        <div class="time-label">Dinner</div>
+        <div class="cell"><div class="cell-title">Pasta bake</div><div class="cell-meta">£5.20 · 2 portions</div></div>
+        <div class="cell"><div class="cell-title">Veg stir-fry</div><div class="cell-meta">£4.10</div></div>
+        <div class="cell"><div class="cell-title">Chickpea curry</div><div class="cell-meta">£3.80</div></div>
+        <div class="cell"><div class="cell-title">Buddha bowl</div><div class="cell-meta">£4.90</div></div>
+        <div class="cell"><div class="cell-title">Homemade pizza</div><div class="cell-meta">£6.70</div></div>
+        <div class="cell"><div class="cell-title">Burger night</div><div class="cell-meta">£7.20</div></div>
+        <div class="cell"><div class="cell-title">Leftovers night</div><div class="cell-meta">£0.00 extra</div></div>
+      </div>
+
+      <div class="legend">
+        <span>Main meals</span>
+        <span>Leftovers / use-up</span>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="summary-title">Auto-generated shopping list</div>
+      <div class="summary-block">
+        ByteRight scans your week and combines overlapping ingredients into one simple list,
+        so you only buy what you actually need.
+      </div>
+
+      <div class="list">
+        <h3>Fresh produce</h3>
+        <ul>
+          <li><span>Tomatoes</span><span class="qty">6 medium</span></li>
+          <li><span>Onions</span><span class="qty">4</span></li>
+          <li><span>Mixed peppers</span><span class="qty">3</span></li>
+          <li><span>Spinach</span><span class="qty">1 bag</span></li>
+        </ul>
+      </div>
+
+      <div class="list">
+        <h3>Store cupboard</h3>
+        <ul>
+          <li><span>Pasta</span><span class="qty">1 kg</span></li>
+          <li><span>Rice</span><span class="qty">500 g</span></li>
+          <li><span>Chickpeas</span><span class="qty">3 tins</span></li>
+          <li><span>Passata / chopped tomatoes</span><span class="qty">2 cartons</span></li>
+        </ul>
+      </div>
+
+      <div class="list">
+        <h3>Fridge & freezer</h3>
+        <ul>
+          <li><span>Cheddar</span><span class="qty">300 g</span></li>
+          <li><span>Yoghurt</span><span class="qty">1 large tub</span></li>
+          <li><span>Frozen veg mix</span><span class="qty">1 bag</span></li>
+        </ul>
+      </div>
+
+      <div class="saving-card">
+        <strong>Estimated cost: £32.50</strong>
+        <span>Based on current supermarket averages for Manchester.</span><br>
+        <span>You save about £11.20 vs. buying meals individually.</span>
+      </div>
+    </aside>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
