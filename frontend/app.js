@@ -214,6 +214,9 @@ async function initDashboardPage() {
         }
     } catch (e) { /* keep placeholder data */ }
 
+    // Fridge inventory widget
+    await initFridgeWidget();
+
     // Logout link
     document.querySelectorAll('a[href="byteright_login.html"]').forEach(a => {
         a.addEventListener('click', async (e) => {
@@ -224,12 +227,69 @@ async function initDashboardPage() {
     });
 }
 
+async function initFridgeWidget() {
+    const listEl = document.getElementById('fridgeItemsList');
+    const input = document.getElementById('fridgeItemInput');
+    const addBtn = document.getElementById('addFridgeBtn');
+    if (!listEl || !input || !addBtn) return;
+
+    async function loadFridge() {
+        try {
+            const data = await apiCall('fridge.php?action=list');
+            if (data.items.length === 0) {
+                listEl.innerHTML = '<span style="color:#8d7b68;font-size:0.85rem;">No items yet. Add what you have.</span>';
+                return;
+            }
+            listEl.innerHTML = data.items.map(item => `
+                <span class="fridge-chip" style="
+                    display:inline-flex;align-items:center;gap:4px;
+                    background:#f0ebe3;border:1px solid #d4c9b8;border-radius:16px;
+                    padding:4px 10px;font-size:0.82rem;color:#5d4a3a;">
+                    ${escapeHtml(item.name)}${item.quantity ? ' (' + escapeHtml(item.quantity) + ')' : ''}
+                    <button onclick="removeFridgeItem(${item.id})" style="
+                        background:none;border:none;cursor:pointer;color:#999;font-size:0.9rem;
+                        padding:0 2px;line-height:1;">&times;</button>
+                </span>
+            `).join('');
+        } catch (e) { /* keep default */ }
+    }
+
+    addBtn.addEventListener('click', async () => {
+        const name = input.value.trim();
+        if (!name) return;
+        try {
+            await apiCall('fridge.php?action=add', {
+                method: 'POST',
+                body: { name }
+            });
+            input.value = '';
+            await loadFridge();
+        } catch (err) {
+            showToast(err.error || 'Could not add item', 'error');
+        }
+    });
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') addBtn.click();
+    });
+
+    await loadFridge();
+}
+
+// Global function for inline onclick
+async function removeFridgeItem(id) {
+    try {
+        await apiCall('fridge.php?action=remove&id=' + id, { method: 'DELETE' });
+        await initFridgeWidget();
+    } catch (e) { /* ignore */ }
+}
+
 // ============================================
 // RECIPES PAGE
 // ============================================
 
-function initRecipesPage() {
-    checkAuth();
+async function initRecipesPage() {
+    await checkAuth();
 
     const textarea = document.querySelector('textarea');
     const chips = document.querySelectorAll('.chip');
@@ -237,6 +297,14 @@ function initRecipesPage() {
     const generateBtn = document.querySelector('.btn-gen');
     const recipeList = document.querySelector('.recipe-list');
     const resultsHeader = document.querySelector('.results-header small');
+
+    // Pre-load fridge items into textarea
+    try {
+        const fridge = await apiCall('fridge.php?action=list');
+        if (fridge.items.length > 0 && textarea) {
+            textarea.value = fridge.items.map(i => i.name).join(', ');
+        }
+    } catch (e) { /* ignore */ }
 
     let activeFilters = { diet: '', maxTime: 0, maxCost: 0 };
 
@@ -404,10 +472,18 @@ async function initPlannerPage() {
         genPlanBtn.textContent = 'Generating...';
         genPlanBtn.disabled = true;
         try {
+            const budgetVal = parseFloat(planBudget.value) || 30;
             const plan = await apiCall('mealplan.php?action=generate', {
                 method: 'POST',
-                body: { budget: parseFloat(planBudget.value) || 30 }
+                body: { budget: budgetVal }
             });
+            // Also save the budget to the user's profile so it persists
+            try {
+                await apiCall('profile.php?action=update', {
+                    method: 'POST',
+                    body: { weekly_budget: budgetVal }
+                });
+            } catch (e) { /* non-critical */ }
             renderMealPlan(grid, plan);
             await loadShoppingList(aside, plan.id);
             showToast('Meal plan generated!');
@@ -839,6 +915,12 @@ async function initProfilePage() {
         const allergiesInput = document.getElementById('allergiesInput');
         if (allergiesInput && profile.allergies) allergiesInput.value = profile.allergies;
 
+        // Likes / dislikes
+        const likedInput = document.getElementById('likedIngredientsInput');
+        const dislikedInput = document.getElementById('dislikedIngredientsInput');
+        if (likedInput && profile.liked_ingredients) likedInput.value = profile.liked_ingredients;
+        if (dislikedInput && profile.disliked_ingredients) dislikedInput.value = profile.disliked_ingredients;
+
         // Budget
         const budgetInput = document.getElementById('budgetInput');
         const budgetSlider = document.getElementById('budgetSlider');
@@ -971,6 +1053,8 @@ async function initProfilePage() {
                     weekly_budget: parseFloat(document.getElementById('budgetInput').value) || 30,
                     cooking_time_pref: timeReverseMap[document.getElementById('cookingTimeSelect').value] || 'under30',
                     allergies: document.getElementById('allergiesInput').value,
+                    liked_ingredients: document.getElementById('likedIngredientsInput')?.value || '',
+                    disliked_ingredients: document.getElementById('dislikedIngredientsInput')?.value || '',
                     dietary_preference_ids: selectedPrefs,
                 }
             });

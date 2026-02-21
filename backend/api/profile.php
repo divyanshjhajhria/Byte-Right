@@ -45,7 +45,8 @@ function getProfile(): void {
     // User info
     $stmt = $db->prepare('
         SELECT id, name, email, university, avatar_path, weekly_budget,
-               cooking_time_pref, meal_plan_pref, allergies, created_at
+               cooking_time_pref, meal_plan_pref, allergies,
+               liked_ingredients, disliked_ingredients, created_at
         FROM users WHERE id = ?
     ');
     $stmt->execute([$userId]);
@@ -69,7 +70,7 @@ function updateProfile(): void {
     $data = getRequestBody();
     $db = getDB();
 
-    $allowed = ['name', 'university', 'weekly_budget', 'cooking_time_pref', 'meal_plan_pref', 'allergies'];
+    $allowed = ['name', 'university', 'weekly_budget', 'cooking_time_pref', 'meal_plan_pref', 'allergies', 'liked_ingredients', 'disliked_ingredients'];
     $sets = [];
     $params = [];
 

@@ -53,60 +53,11 @@
     <section class="panel">
       <div class="results-header">
         <h2>Suggested recipes</h2>
-        <small>Showing 3 of 12 matches</small>
+        <small id="resultsCount"></small>
       </div>
 
-      <div class="recipe-list">
-        <article class="recipe-card">
-          <div class="recipe-icon">🍝</div>
-          <div class="recipe-main">
-            <h3>One-Pot Tomato Pasta</h3>
-            <p>Uses: pasta, tomatoes, onion, garlic, cheese</p>
-            <div class="recipe-tags">
-              <span class="tag">15 min</span>
-              <span class="tag">£3.80 / serving</span>
-              <span class="tag">Beginner-friendly</span>
-            </div>
-          </div>
-          <div class="recipe-meta">
-            <strong>96% match</strong>
-            <span>⭐ 4.8 · 342 cooks</span>
-          </div>
-        </article>
-
-        <article class="recipe-card">
-          <div class="recipe-icon">🍳</div>
-          <div class="recipe-main">
-            <h3>Cheesy Veg Omelette</h3>
-            <p>Uses: eggs, cheese, onion, tomatoes, leftover veg</p>
-            <div class="recipe-tags">
-              <span class="tag">10 min</span>
-              <span class="tag">£2.40 / serving</span>
-              <span class="tag">Great for breakfast</span>
-            </div>
-          </div>
-          <div class="recipe-meta">
-            <strong>89% match</strong>
-            <span>⭐ 4.7 · 198 cooks</span>
-          </div>
-        </article>
-
-        <article class="recipe-card">
-          <div class="recipe-icon">🥘</div>
-          <div class="recipe-main">
-            <h3>Tray-Bake Veggie Pasta</h3>
-            <p>Uses: pasta, carrots, peas, tomatoes, cheese</p>
-            <div class="recipe-tags">
-              <span class="tag">30 min</span>
-              <span class="tag">£4.20 / serving</span>
-              <span class="tag">Minimal washing-up</span>
-            </div>
-          </div>
-          <div class="recipe-meta">
-            <strong>82% match</strong>
-            <span>⭐ 4.6 · 121 cooks</span>
-          </div>
-        </article>
+      <div class="recipe-list" id="recipeResults">
+        <p style="text-align:center;padding:32px;color:#5d4a3a;">Enter your ingredients and click Generate to see recipe suggestions.</p>
       </div>
     </section>
   </main>
