@@ -43,12 +43,16 @@ function generateMealPlan(): void {
     $db = getDB();
 
     // Get user preferences
-    $stmt = $db->prepare('SELECT weekly_budget, cooking_time_pref, meal_plan_pref FROM users WHERE id = ?');
+    $stmt = $db->prepare('SELECT weekly_budget, cooking_time_pref, meal_plan_pref, liked_ingredients, disliked_ingredients FROM users WHERE id = ?');
     $stmt->execute([$userId]);
     $prefs = $stmt->fetch();
 
     $budget = (float) ($data['budget'] ?? $prefs['weekly_budget'] ?? 30.00);
     $weekStart = $data['week_start'] ?? date('Y-m-d', strtotime('monday this week'));
+
+    // Parse likes/dislikes
+    $likedIngredients = array_filter(array_map('trim', explode(',', strtolower($prefs['liked_ingredients'] ?? ''))));
+    $dislikedIngredients = array_filter(array_map('trim', explode(',', strtolower($prefs['disliked_ingredients'] ?? ''))));
 
     // Get user dietary restrictions
     $stmt = $db->prepare('
@@ -69,7 +73,7 @@ function generateMealPlan(): void {
     }
 
     // Fallback: generate from local recipes
-    $localPlan = generateFromLocal($db, $budget, $dietaryPrefs, $prefs['cooking_time_pref'] ?? 'any');
+    $localPlan = generateFromLocal($db, $budget, $dietaryPrefs, $prefs['cooking_time_pref'] ?? 'any', $likedIngredients, $dislikedIngredients);
     $planId = saveMealPlan($db, $userId, $weekStart, $budget, $localPlan);
 
     // Log activity
@@ -135,7 +139,7 @@ function generateFromAPI(float $budget, array $dietaryPrefs): ?array {
 /**
  * Generate meal plan from local recipe database
  */
-function generateFromLocal(PDO $db, float $budget, array $dietaryPrefs, string $timePref): array {
+function generateFromLocal(PDO $db, float $budget, array $dietaryPrefs, string $timePref, array $likedIngredients = [], array $dislikedIngredients = []): array {
     // Determine time filter
     $maxTime = match($timePref) {
         'under15' => 15,
@@ -171,6 +175,29 @@ function generateFromLocal(PDO $db, float $budget, array $dietaryPrefs, string $
         }));
     }
 
+    // Filter out recipes containing disliked ingredients
+    if (!empty($dislikedIngredients)) {
+        $recipes = array_values(array_filter($recipes, function($r) use ($dislikedIngredients) {
+            $ing = strtolower($r['ingredients'] ?? '');
+            foreach ($dislikedIngredients as $dislike) {
+                if ($dislike !== '' && str_contains($ing, $dislike)) return false;
+            }
+            return true;
+        }));
+    }
+
+    // Score recipes by liked ingredients (higher = more liked items)
+    foreach ($recipes as &$r) {
+        $r['_like_score'] = 0;
+        if (!empty($likedIngredients)) {
+            $ing = strtolower($r['ingredients'] ?? '');
+            foreach ($likedIngredients as $like) {
+                if ($like !== '' && str_contains($ing, $like)) $r['_like_score']++;
+            }
+        }
+    }
+    unset($r);
+
     if (empty($recipes)) {
         $stmt = $db->prepare('SELECT * FROM recipes');
         $stmt->execute();
@@ -184,6 +211,13 @@ function generateFromLocal(PDO $db, float $budget, array $dietaryPrefs, string $
         str_contains($r['tags'] ?? '', 'dinner') || str_contains($r['tags'] ?? '', 'lunch')
     ));
 
+    // If too few breakfast recipes, supplement with quick/light recipes from general pool
+    if (count($breakfastRecipes) < 4) {
+        $quickRecipes = array_filter($recipes, fn($r) =>
+            str_contains($r['tags'] ?? '', 'quick') && !in_array($r['id'], array_column($breakfastRecipes, 'id'))
+        );
+        $breakfastRecipes = array_values(array_merge($breakfastRecipes, array_values($quickRecipes)));
+    }
     if (empty($breakfastRecipes)) $breakfastRecipes = $recipes;
     if (empty($lunchRecipes)) $lunchRecipes = $recipes;
     if (empty($dinnerRecipes)) $dinnerRecipes = $recipes;
@@ -204,9 +238,13 @@ function generateFromLocal(PDO $db, float $budget, array $dietaryPrefs, string $
         $lunchTarget = 0;
     }
 
-    // Sort each pool by closeness to their target cost (best-fit first)
+    // Sort each pool by liked-ingredient score first, then by closeness to budget target
     $sortByTarget = function(array &$pool, float $target) {
         usort($pool, function($a, $b) use ($target) {
+            // Higher like score first
+            $likeDiff = ($b['_like_score'] ?? 0) - ($a['_like_score'] ?? 0);
+            if ($likeDiff !== 0) return $likeDiff;
+            // Then closest to budget target
             return abs(($a['estimated_cost'] ?? 0) - $target) <=> abs(($b['estimated_cost'] ?? 0) - $target);
         });
     };

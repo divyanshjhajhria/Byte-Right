@@ -18,6 +18,8 @@ CREATE TABLE users (
     cooking_time_pref ENUM('under15', 'under30', 'under60', 'any') DEFAULT 'under30',
     meal_plan_pref ENUM('balanced', 'high_protein', 'low_carb', 'budget') DEFAULT 'balanced',
     allergies TEXT DEFAULT NULL,
+    liked_ingredients TEXT DEFAULT NULL,      -- comma-separated, e.g. "pasta,chicken,rice"
+    disliked_ingredients TEXT DEFAULT NULL,   -- comma-separated, e.g. "mushrooms,olives"
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -178,6 +180,19 @@ CREATE TABLE friendships (
 );
 
 -- ============================================
+-- FRIDGE INVENTORY
+-- ============================================
+CREATE TABLE fridge_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    quantity VARCHAR(50) DEFAULT NULL,
+    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expiry_date DATE DEFAULT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- ============================================
 -- USER ACTIVITY LOG
 -- ============================================
 CREATE TABLE activity_log (
@@ -210,6 +225,31 @@ INSERT INTO recipes (title, description, ingredients, instructions, prep_time, c
  '["2 bananas","2 eggs","pinch of cinnamon","butter for frying","maple syrup to serve"]',
  '["Mash bananas until smooth.","Beat in eggs and cinnamon.","Heat butter in pan over medium heat.","Pour small rounds of batter, cook 2 min each side.","Serve with maple syrup."]',
  5, 10, 2, 1.50, 'easy', '["breakfast","gluten_free"]', 'local'),
+
+('Avocado Toast', 'Simple avocado on toast with a twist.',
+ '["2 slices sourdough bread","1 ripe avocado","1 lime","pinch of chilli flakes","salt","pepper","cherry tomatoes"]',
+ '["Toast the bread until golden.","Mash avocado with lime juice, salt and pepper.","Spread onto toast.","Top with halved cherry tomatoes and chilli flakes."]',
+ 5, 3, 1, 1.80, 'easy', '["breakfast","quick","vegetarian","vegan","healthy"]', 'local'),
+
+('Porridge with Honey and Banana', 'Warm comforting porridge with toppings.',
+ '["50g porridge oats","250ml milk","1 banana","1 tbsp honey","pinch of cinnamon"]',
+ '["Combine oats and milk in a pan.","Cook over medium heat for 4-5 minutes, stirring.","Pour into bowl.","Top with sliced banana, drizzle of honey and cinnamon."]',
+ 2, 5, 1, 0.70, 'easy', '["breakfast","quick","budget","vegetarian"]', 'local'),
+
+('Fruit and Yoghurt Bowl', 'Fresh fruit bowl with creamy yoghurt and granola.',
+ '["150g Greek yoghurt","handful of granola","1 banana","handful of blueberries","1 tbsp honey","chia seeds"]',
+ '["Spoon yoghurt into a bowl.","Top with sliced banana and blueberries.","Sprinkle granola and chia seeds over.","Drizzle with honey."]',
+ 5, 0, 1, 1.50, 'easy', '["breakfast","quick","vegetarian","healthy"]', 'local'),
+
+('Peanut Butter Banana Wrap', 'Quick high-energy breakfast wrap.',
+ '["1 tortilla wrap","2 tbsp peanut butter","1 banana","drizzle of honey","sprinkle of granola"]',
+ '["Warm the tortilla for 10 seconds.","Spread peanut butter evenly.","Place sliced banana down the centre.","Drizzle honey and sprinkle granola.","Roll up tightly and slice in half."]',
+ 3, 0, 1, 1.00, 'easy', '["breakfast","quick","budget","vegetarian","vegan"]', 'local'),
+
+('Smoothie Bowl', 'Thick blended smoothie topped with fruit and seeds.',
+ '["1 frozen banana","100g frozen berries","100ml milk","1 tbsp honey","toppings: granola, coconut flakes, chia seeds"]',
+ '["Blend frozen banana, berries and milk until thick.","Pour into bowl.","Arrange toppings on top.","Serve immediately."]',
+ 5, 0, 1, 1.60, 'easy', '["breakfast","quick","vegetarian","vegan","healthy"]', 'local'),
 
 -- QUICK LUNCHES
 ('Tomato Soup', 'Hearty homemade tomato soup from canned tomatoes.',
