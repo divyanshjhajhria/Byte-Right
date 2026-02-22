@@ -173,9 +173,12 @@ function initLoginPage() {
 // DASHBOARD PAGE
 // ============================================
 
-async function initDashboardPage() {
-    const user = await checkAuth();
-    if (!user) return;
+async function initDashboardPage(user) {
+    const els = document.querySelectorAll('.username');
+    //console.log('found elements:', els.length);
+    els.forEach(el => {
+        el.textContent = user.name;
+    });
 
     // Load stats
     try {
@@ -224,9 +227,6 @@ async function initDashboardPage() {
             }).join('');
         }
     } catch (e) { /* keep placeholder data */ }
-
-    // Fridge inventory widget
-    await initFridgeWidget();
 
     // Logout link
     document.querySelectorAll('a[href="byteright_login.html"]').forEach(a => {
@@ -299,8 +299,7 @@ async function removeFridgeItem(id) {
 // RECIPES PAGE
 // ============================================
 
-async function initRecipesPage() {
-    await checkAuth();
+async function initRecipesPage(user) {
 
     const textarea = document.querySelector('textarea');
     const chips = document.querySelectorAll('.chip');
@@ -440,10 +439,7 @@ async function initRecipesPage() {
 // MEAL PLANNER PAGE
 // ============================================
 
-async function initPlannerPage() {
-    const user = await checkAuth();
-    if (!user) return;
-
+async function initPlannerPage(user) {
     const grid = document.querySelector('.grid');
     const aside = document.querySelector('aside.panel');
 
@@ -606,9 +602,7 @@ function renderShoppingList(aside, list) {
 // SOCIAL PAGE
 // ============================================
 
-async function initSocialPage() {
-    const user = await checkAuth();
-    if (!user) return;
+async function initSocialPage(user) {
 
     const postsList = document.querySelector('.posts-list');
     const createPostCard = document.getElementById('createPostCard');
@@ -895,10 +889,7 @@ async function loadSocialStats() {
 // PROFILE PAGE
 // ============================================
 
-async function initProfilePage() {
-    const user = await checkAuth();
-    if (!user) return;
-
+async function initProfilePage(user) {
     const db = {};
 
     // Load full profile
@@ -1282,20 +1273,28 @@ function escapeHtml(str) {
 // PAGE ROUTER - Auto-init based on current page
 // ============================================
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const path = window.location.pathname;
 
     if (path.includes('login')) {
         initLoginPage();
-    } else if (path.includes('dashboard')) {
-        initDashboardPage();
-    } else if (path.includes('recipes')) {
-        initRecipesPage();
-    } else if (path.includes('planner')) {
-        initPlannerPage();
-    } else if (path.includes('social')) {
-        initSocialPage();
-    } else if (path.includes('profile')) {
-        initProfilePage();
+    } else {
+        const user = await checkAuth();
+        if (!user) return;
+        document.querySelectorAll('.username').forEach(el => {
+            el.textContent = user.name;
+        });
+
+        if (path.includes('dashboard')) {
+            initDashboardPage(user);
+        } else if (path.includes('recipes')) {
+            initRecipesPage(user);
+        } else if (path.includes('planner')) {
+            initPlannerPage(user);
+        } else if (path.includes('social')) {
+            initSocialPage(user);
+        } else if (path.includes('profile')) {
+            initProfilePage(user);
+        }
     }
 });

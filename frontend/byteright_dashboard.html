@@ -22,14 +22,14 @@
       <a href="byteright_recipes.html" class="nav-link primary">Recipes</a>
       <a href="byteright_planner.html" class="nav-link primary">Meal Plan</a>
       <a href="byteright_social.html" class="nav-link primary">Social</a>
-      <a href="byteright_profile.html" class="nav-link primary">{username} 👤</a>
+      <a href="byteright_profile.html" class="nav-link primary"> <span class="username"></span> 👤</a>
     </div>
   </header>
 
   <main class="dashboard-container">
     <section class="welcome-section">
       <div class="welcome-content">
-        <h1>Welcome back, {username}! 👋</h1>
+        <h1>Welcome back, <span class="username"></span>!</h1>
         <p>Ready to cook something delicious today?</p>
       </div>
       <div class="quick-stats">
@@ -45,60 +45,6 @@
           <div class="stat-mini-value">0</div>
           <div class="stat-mini-label">Friends</div>
         </div>
-      </div>
-    </section>
-
-    <section class="nav-cards-section">
-      <h2>What would you like to do?</h2>
-      
-      <div class="nav-cards-grid">
-        <a href="byteright_recipes.html" class="nav-card recipe-card">
-          <div class="nav-card-icon">🍳</div>
-          <div class="nav-card-content">
-            <h3>Generate Recipe</h3>
-            <p>Turn your fridge ingredients into a delicious meal</p>
-            <div class="nav-card-meta">
-              <span class="badge">Quick & Easy</span>
-            </div>
-          </div>
-          <div class="nav-card-arrow">→</div>
-        </a>
-
-        <a href="byteright_planner.html" class="nav-card planner-card">
-          <div class="nav-card-icon">📅</div>
-          <div class="nav-card-content">
-            <h3>Weekly Planner</h3>
-            <p>Plan your meals for the entire week ahead</p>
-            <div class="nav-card-meta">
-              <span class="badge">Save Time</span>
-            </div>
-          </div>
-          <div class="nav-card-arrow">→</div>
-        </a>
-
-        <a href="byteright_social.html" class="nav-card social-card">
-          <div class="nav-card-icon">📸</div>
-          <div class="nav-card-content">
-            <h3>Social Feed</h3>
-            <p>See what your friends are cooking today</p>
-            <div class="nav-card-meta">
-              <span class="badge">View Feed</span>
-            </div>
-          </div>
-          <div class="nav-card-arrow">→</div>
-        </a>
-
-        <a href="byteright_planner.html" class="nav-card shopping-card">
-          <div class="nav-card-icon">🛒</div>
-          <div class="nav-card-content">
-            <h3>Shopping List</h3>
-            <p>View your auto-generated shopping list</p>
-            <div class="nav-card-meta">
-              <span class="badge">View List</span>
-            </div>
-          </div>
-          <div class="nav-card-arrow">→</div>
-        </a>
       </div>
     </section>
 
@@ -157,29 +103,6 @@
       </div>
     </section>
 
-    <section class="tips-section">
-      <div class="tip-card fridge-card">
-        <div class="tip-content" style="width:100%;">
-          <h3>My Fridge</h3>
-          <div id="fridgeItemsList" style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;">
-            <span style="color:#8d7b68;font-size:0.85rem;">No items yet. Add what you have.</span>
-          </div>
-          <div style="display:flex;gap:8px;margin-top:8px;">
-            <input type="text" id="fridgeItemInput" placeholder="Add item (e.g. chicken, rice)" style="
-              flex:1;padding:8px 12px;border:1px solid #c9c4b0;border-radius:8px;font-size:0.85rem;font-family:Inter,sans-serif;">
-            <button id="addFridgeBtn" style="
-              background:#7cb342;color:#fff;border:none;padding:8px 16px;border-radius:8px;
-              font-weight:600;cursor:pointer;font-size:0.85rem;font-family:Inter,sans-serif;">Add</button>
-          </div>
-        </div>
-      </div>
-      <div class="tip-card">
-        <div class="tip-content">
-          <h3>Tip of the Day</h3>
-          <p>Save money by batch-cooking. Make double portions and freeze half for busy days.</p>
-        </div>
-      </div>
-    </section>
   </main>
 
   <footer class="dashboard-footer">
