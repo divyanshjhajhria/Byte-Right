@@ -20,9 +20,9 @@
     <div class="nav-links">
       <a href="byteright_dashboard.html" class="nav-link primary">Home</a>
       <a href="byteright_recipes.html" class="nav-link primary">Recipes</a>
-     <a href="byteright_planner.html" class="nav-link primary">Meal Plan</a>
+      <a href="byteright_planner.html" class="nav-link primary">Meal Plan</a>
       <a href="byteright_social.html" class="nav-link primary">Social</a>
-      <span class="active user-menu">{username} 👤</span>
+      <span class="active user-menu username"></span>
     </div>
   </header>
 
@@ -33,7 +33,7 @@
         <button class="btn-change-avatar">Change Photo</button>
       </div>
       <div class="profile-info">
-        <h1 id="displayName">{username}</h1>
+        <h1 id="displayName"><span class="username"></span></h1>
         <p class="profile-stats">
           <span>0 Recipes Saved</span>
           <span>·</span>
@@ -59,7 +59,7 @@
             <div class="setting-item">
               <label>Full Name</label>
               <div class="editable-field">
-                <input type="text" id="nameInput" value="{username}" disabled />
+                <input type="text" class="username" disabled />
                 <button class="btn-edit" id="editNameBtn">✏️ Edit</button>
                 <button class="btn-save hidden" id="saveNameBtn">✓ Save</button>
                 <button class="btn-cancel hidden" id="cancelNameBtn">✗ Cancel</button>
@@ -68,7 +68,7 @@
 
             <div class="setting-item">
               <label>Email</label>
-              <input type="email" value="you@xyz.com" disabled />
+              <input type="email" class="user-email" disabled />
               <small class="setting-note">Email cannot be changed. Contact support if needed.</small>
             </div>
 

@@ -1282,7 +1282,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         const user = await checkAuth();
         if (!user) return;
         document.querySelectorAll('.username').forEach(el => {
-            el.textContent = user.name;
+            if (el.tagName === 'INPUT') {
+                el.value = user.name;
+            } else {
+                el.textContent = user.name;
+    }
+        });
+        document.querySelectorAll('.user-email').forEach(el => {
+            el.value = user.email;
         });
 
         if (path.includes('dashboard')) {
