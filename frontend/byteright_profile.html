@@ -399,7 +399,15 @@
     </div>
   </footer>
 
-  <script src="app.js"></script>
+  <script>
+  fetch('app.local.js', { method: 'HEAD' })
+    .then(r => {
+      const s = document.createElement('script');
+      s.src = r.ok ? 'app.local.js' : 'app.js';
+      document.body.appendChild(s);
+    });
+  </script>
+  
   <script>
     // Tab switching
     const tabs = document.querySelectorAll('.profile-tab');
