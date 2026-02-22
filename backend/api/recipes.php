@@ -230,6 +230,18 @@ function searchLocalRecipes(string $ingredientStr, string $diet, int $maxTime, f
     $stmt->execute($params);
     $recipes = $stmt->fetchAll();
 
+    // Load user's disliked ingredients
+    $userId = $_SESSION['user_id'] ?? null;
+    $dislikedIngredients = [];
+    if ($userId) {
+        $uStmt = $db->prepare('SELECT disliked_ingredients FROM users WHERE id = ?');
+        $uStmt->execute([$userId]);
+        $uRow = $uStmt->fetch();
+        if ($uRow && $uRow['disliked_ingredients']) {
+            $dislikedIngredients = array_filter(array_map('trim', explode(',', strtolower($uRow['disliked_ingredients']))));
+        }
+    }
+
     // Score by ingredient match
     $scored = [];
     $dietLower = strtolower($diet);
@@ -249,6 +261,16 @@ function searchLocalRecipes(string $ingredientStr, string $diet, int $maxTime, f
                 continue;
             }
         }
+
+        // Skip recipes containing disliked ingredients
+        $hasDisliked = false;
+        foreach ($dislikedIngredients as $dislike) {
+            if ($dislike !== '' && str_contains($recipeIngStr, $dislike)) {
+                $hasDisliked = true;
+                break;
+            }
+        }
+        if ($hasDisliked) continue;
 
         $matched = 0;
         $usedIngredients = [];

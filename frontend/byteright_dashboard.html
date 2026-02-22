@@ -158,18 +158,25 @@
     </section>
 
     <section class="tips-section">
-      <div class="tip-card">
-        <div class="tip-icon">💡</div>
-        <div class="tip-content">
-          <h3>Tip of the Day</h3>
-          <p>Save money by batch-cooking! Make double portions and freeze half for busy days.</p>
+      <div class="tip-card fridge-card">
+        <div class="tip-content" style="width:100%;">
+          <h3>My Fridge</h3>
+          <div id="fridgeItemsList" style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;">
+            <span style="color:#8d7b68;font-size:0.85rem;">No items yet. Add what you have.</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <input type="text" id="fridgeItemInput" placeholder="Add item (e.g. chicken, rice)" style="
+              flex:1;padding:8px 12px;border:1px solid #c9c4b0;border-radius:8px;font-size:0.85rem;font-family:Inter,sans-serif;">
+            <button id="addFridgeBtn" style="
+              background:#7cb342;color:#fff;border:none;padding:8px 16px;border-radius:8px;
+              font-weight:600;cursor:pointer;font-size:0.85rem;font-family:Inter,sans-serif;">Add</button>
+          </div>
         </div>
       </div>
       <div class="tip-card">
-        <div class="tip-icon">🌱</div>
         <div class="tip-content">
-          <h3>Reduce Waste</h3>
-          <p>Your spinach is expiring soon. Check out recipes using spinach before it goes bad!</p>
+          <h3>Tip of the Day</h3>
+          <p>Save money by batch-cooking. Make double portions and freeze half for busy days.</p>
         </div>
       </div>
     </section>

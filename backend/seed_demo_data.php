@@ -14,7 +14,56 @@ echo "=== ByteRight Demo Data Seeder ===\n\n";
 $db = getDB();
 
 // ============================================
-// 0. FIX EXISTING RECIPES: Remove "vegetarian" tag from egg-containing recipes
+// 0a. MIGRATIONS: Add new columns if they don't exist
+// ============================================
+
+echo "Running migrations...\n";
+
+$migrations = [
+    "ALTER TABLE users ADD COLUMN liked_ingredients TEXT DEFAULT NULL",
+    "ALTER TABLE users ADD COLUMN disliked_ingredients TEXT DEFAULT NULL",
+    "CREATE TABLE IF NOT EXISTS fridge_items (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        name VARCHAR(100) NOT NULL,
+        quantity VARCHAR(50) DEFAULT NULL,
+        added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        expiry_date DATE DEFAULT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )",
+];
+
+foreach ($migrations as $sql) {
+    try {
+        $db->exec($sql);
+        echo "  OK: " . substr($sql, 0, 60) . "...\n";
+    } catch (PDOException $e) {
+        // Column/table already exists — skip
+        if (str_contains($e->getMessage(), 'Duplicate column') || str_contains($e->getMessage(), 'already exists')) {
+            echo "  Skip (already exists): " . substr($sql, 0, 60) . "...\n";
+        } else {
+            echo "  WARN: " . $e->getMessage() . "\n";
+        }
+    }
+}
+
+// Insert new breakfast recipes if missing
+$newBreakfasts = [
+    'Avocado Toast', 'Porridge with Honey and Banana', 'Fruit and Yoghurt Bowl',
+    'Peanut Butter Banana Wrap', 'Smoothie Bowl'
+];
+foreach ($newBreakfasts as $title) {
+    $check = $db->prepare('SELECT id FROM recipes WHERE title = ?');
+    $check->execute([$title]);
+    if (!$check->fetch()) {
+        echo "  New recipe '$title' will be added on next setup.php run\n";
+    }
+}
+
+echo "\n";
+
+// ============================================
+// 0b. FIX EXISTING RECIPES: Remove "vegetarian" tag from egg-containing recipes
 // ============================================
 
 echo "Fixing vegetarian tags on egg recipes...\n";
