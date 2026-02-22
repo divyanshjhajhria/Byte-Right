@@ -61,13 +61,7 @@
       </div>
     </section>
   </main>
-  <script>
-  fetch('app.local.js', { method: 'HEAD' })
-    .then(r => {
-      const s = document.createElement('script');
-      s.src = r.ok ? 'app.local.js' : 'app.js';
-      document.body.appendChild(s);
-    });
-  </script>
+  <script src="app.local.js"></script> <!-- gives dev access the local file exists -->
+  <script src="app.js"></script>
 </body>
 </html>

@@ -1273,7 +1273,8 @@ function escapeHtml(str) {
 
 document.addEventListener('DOMContentLoaded', () => {
     const path = window.location.pathname;
-
+    console.log('path is:', path);
+    
     if (path.includes('login')) {
         initLoginPage();
     } else if (path.includes('dashboard')) {
