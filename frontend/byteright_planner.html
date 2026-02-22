@@ -68,11 +68,8 @@
 
     <aside class="panel">
       <div class="summary-title">Auto-generated shopping list</div>
-      <div class="summary-block">
-        ByteRight scans your week and combines overlapping ingredients into one simple list,
-        so you only buy what you actually need.
-      </div>
 
+      <div class="lists-scroll">
       <div class="list">
         <h3>Fresh produce</h3>
         <ul>
@@ -102,6 +99,7 @@
         </ul>
       </div>
 
+    </div>
       <div class="saving-card">
         <strong>Estimated cost: £32.50</strong>
         <span>Based on current supermarket averages for Manchester.</span><br>
@@ -109,7 +107,18 @@
       </div>
     </aside>
   </main>
-  <script src="app.local.js"></script> <!-- gives dev access the local file exists -->
+  <script src="app.local.js"></script>
   <script src="app.js"></script>
+  <script>
+    function matchSidebarHeight() {
+      var left = document.querySelector('.layout > section.panel');
+      var right = document.querySelector('.layout > aside.panel');
+      if (!left || !right) return;
+      right.style.height = '';
+      right.style.height = left.getBoundingClientRect().height + 'px';
+    }
+    matchSidebarHeight();
+    window.addEventListener('resize', matchSidebarHeight);
+  </script>
 </body>
 </html>
