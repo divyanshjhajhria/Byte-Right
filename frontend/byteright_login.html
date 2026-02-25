@@ -111,12 +111,12 @@
       tab.classList.add("active");
 
       if (index === 0) {
-        panelTitle.textContent = "Welcome back, foodie 👋";
+        panelTitle.textContent = "Welcome back, foodie";
         panelText.textContent = "Log in to see tonight's ideas, this week's plan, and what your friends are cooking.";
         fieldsContainer.querySelectorAll(".field, .inline-row, .btn-main, .small-note").forEach(e => e.remove());
         fieldsContainer.insertAdjacentHTML("beforeend", loginForm);
       } else {
-        panelTitle.textContent = "Create your free account 🎉";
+        panelTitle.textContent = "Create your free account";
         panelText.textContent = "Join ByteRight and start cooking smarter with personalised recipes and meal plans.";
         fieldsContainer.querySelectorAll(".field, .inline-row, .btn-main, .small-note").forEach(e => e.remove());
         fieldsContainer.insertAdjacentHTML("beforeend", signupForm);
