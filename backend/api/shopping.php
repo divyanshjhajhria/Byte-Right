@@ -80,8 +80,18 @@ function generateShoppingList(): void {
             $key = strtolower($parsed['name']);
 
             if (isset($ingredientMap[$key])) {
-                // Merge quantities (simple approach - just note it)
-                $ingredientMap[$key]['quantity'] .= ' + ' . ($parsed['quantity'] ?: '');
+                $existingQty  = $ingredientMap[$key]['quantity'];
+                $newQty       = $parsed['quantity'];
+                $existingUnit = strtolower($ingredientMap[$key]['unit']);
+                $newUnit      = strtolower($parsed['unit']);
+
+                if (is_numeric($existingQty) && is_numeric($newQty) && $existingUnit === $newUnit) {
+                    // Same unit — add them together
+                    $ingredientMap[$key]['quantity'] = (string)($existingQty + $newQty);
+                } elseif ($newQty !== '' && $newQty !== $existingQty) {
+                    // Different units — show both
+                    $ingredientMap[$key]['quantity'] = $existingQty . ' + ' . $newQty . ($newUnit ? ' ' . $parsed['unit'] : '');
+                }
             } else {
                 $ingredientMap[$key] = $parsed;
             }
@@ -137,8 +147,18 @@ function parseIngredient(string $raw): array {
     $pattern = '/^([\d\/\.]+)?\s*(g|kg|ml|l|tbsp|tsp|cup|cups|handful|pinch|can|cans|slice|slices|clove|cloves|pack|packs)?\s*(?:of\s+)?(.+)$/i';
 
     if (preg_match($pattern, $raw, $m)) {
+        $quantityStr = trim($m[1] ?? '');
+        $quantity = '';
+        if ($quantityStr !== '') {
+            if (str_contains($quantityStr, '/')) {
+                [$num, $den] = explode('/', $quantityStr, 2);
+                $quantity = $den != 0 ? (string) round((float)$num / (float)$den, 2) : $quantityStr;
+            } else {
+                $quantity = $quantityStr;
+            }
+        }
         return [
-            'quantity' => trim($m[1] ?? ''),
+            'quantity' => $quantity,
             'unit'     => trim($m[2] ?? ''),
             'name'     => trim($m[3] ?? $raw),
         ];
