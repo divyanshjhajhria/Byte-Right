@@ -18,7 +18,7 @@ body {
   background: linear-gradient(135deg, rgba(124, 179, 66, 0.15) 0%, rgba(255, 248, 225, 0.95) 100%);
   border-radius: 20px;
   padding: 32px 36px;
-  margin-bottom: 32px;
+  margin-bottom: 12px;
   box-shadow: 0 12px 24px rgba(93, 64, 55, 0.15);
   border: 1px solid rgba(124, 179, 66, 0.25);
   display: flex;
@@ -37,6 +37,79 @@ body {
 .welcome-content p {
   font-size: 1rem;
   color: var(--text-muted);
+}
+
+.viral-hero {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  background: var(--bg-light);
+  border-radius: 22px;
+  padding: 26px;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 28px;
+  box-shadow: 0 10px 30px rgba(93, 64, 55, 0.18);
+  border: 1px solid var(--border-soft);
+}
+
+.viral-hero-image {
+  border-radius: 18px;
+  background-position: center;
+  min-height: 260px;
+  aspect-ratio: 16 / 9;
+  width: 100%;
+}
+
+.viral-hero-content h1 {
+  font-size: 1.9rem;
+  margin: 6px 0 10px;
+}
+
+.viral-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--accent-green-dark);
+}
+
+.viral-hero-content p {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+.viral-meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.viral-meta span {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.9);
+  border: 1px solid var(--border-soft);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+
+.viral-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 900px) {
+  .viral-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .viral-hero-image {
+    min-height: 200px;
+  }
 }
 
 .quick-stats {
