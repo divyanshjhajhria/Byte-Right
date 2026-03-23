@@ -1277,6 +1277,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 el.textContent = user.name;
     }
         });
+        document.querySelectorAll('.user-initial').forEach(el => {
+            el.textContent = user.name.charAt(0).toUpperCase();
+        });
         document.querySelectorAll('.user-email').forEach(el => {
             el.value = user.email;
         });

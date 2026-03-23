@@ -136,6 +136,11 @@ a {
   border-radius: 2px;
   background: var(--accent-green);
 }
+
+a.user-initial.active::after {
+  display: none;
+}
+
 /*
 .nav-link.primary {
   border: none;
@@ -144,6 +149,32 @@ a {
   box-shadow: 0 6px 18px rgba(124, 179, 66, 0.45);
 }
 */
+
+a.user-initial {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--accent-green);
+  background: rgba(124, 179, 66, 0.12);
+  color: var(--accent-green-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+a.user-initial:hover {
+  background: var(--accent-green);
+  color: #fff;
+}
+
+a.user-initial.active {
+  background: rgba(86, 134, 34, 0.25);
+  border-color: var(--accent-green-dark);
+}
+
 .panel {
   background: var(--bg-card);
   border-radius: var(--radius-lg);
