@@ -35,7 +35,7 @@
       </div>
       <div class="quick-stats">
         <div class="stat-mini">
-          <div class="stat-mini-value">0</div>
+          <div class="stat-mini-value">8</div>
           <div class="stat-mini-label">Recipes Saved</div>
         </div>
         <div class="stat-mini">
@@ -43,66 +43,142 @@
           <div class="stat-mini-label">Total Saved</div>
         </div>
         <div class="stat-mini">
-          <div class="stat-mini-value">0</div>
+          <div class="stat-mini-value">5</div>
           <div class="stat-mini-label">Friends</div>
         </div>
       </div>
     </section>
 
     <section class="viral-hero">
-      <div class="viral-hero-image"><img src="viral_pic.jpg" alt="picture of pasta"></div>
+      <div class="viral-hero-image">
+        <img src="viral_pic.jpg" alt="Viral TikTok Pasta">
+      </div>
 
       <div class="viral-hero-content">
-        <div class="viral-label">THIS WEEK'S HOTTEST</div>
-        <h1>Viral TikTok Pasta</h1>
-
-        <p>
+        <div class="viral-label">🔥 This Week's Hottest</div>
+        <h1 class="viral-title">Viral TikTok Pasta</h1>
+        <p class="viral-desc">
           Everyone's making this! Creamy, easy, and incredibly delicious.
           The perfect 15-minute comfort dish for weeknights on a student budget.
         </p>
 
         <div class="viral-meta">
-          <span>£4.50 / serving</span>
-          <span>15 min</span>
-          <span>4.9 (1.2k)</span>
-          <span>Easy</span>
+          <span class="viral-pill">💰 £4.50 / serving</span>
+          <span class="viral-pill">⏱ 15 min</span>
+          <span class="viral-pill">⭐ 4.9 (1.2k)</span>
+          <span class="viral-pill viral-pill--easy">Easy</span>
         </div>
 
         <div class="viral-actions">
-          <button class="btn-main" onclick="window.location.href='byteright_recipes.html'">▶ View Recipe</button>
-          <button class="btn-secondary" onclick="addToMealPlan()">＋ Add to Meal Plan</button>
-          <button class="btn-secondary" id="save-btn" onclick="toggleSave()">♡ Save</button>
+          <button class="viral-btn-primary" onclick="window.location.href='byteright_recipes.html'">▶ View Recipe</button>
+          <button class="viral-btn-outline" onclick="addToMealPlan()">＋ Meal Plan</button>
+          <button class="viral-btn-outline" id="save-btn" onclick="toggleSave()">♡ Save</button>
         </div>
       </div>
     </section>
 
     <section class="quick-access-section">
-      <div class="quick-access-left">
-        <h2>Recent Recipes</h2>
-        <div class="recent-list">
-          <div class="recent-item">
-            <div class="recent-icon">🍝</div>
-            <div class="recent-info">
-              <div class="recent-title">One-Pot Tomato Pasta</div>
-              <div class="recent-meta">Made 2 days ago</div>
+      <div class="quick-access-left trending-section">
+        <div class="trending-header">
+          <h2>🔥 Trending This Week</h2>
+        </div>
+        <div class="trending-scroll">
+          <div class="trending-card">
+            <div class="trending-card-img">🍝</div>
+            <div class="trending-badge">NEW</div>
+            <div class="trending-card-body">
+              <div class="trending-card-title">Creamy Pesto Pasta</div>
+              <div class="trending-card-price">£6.50</div>
+              <div class="trending-card-meta"><span>20 min</span><span>⭐ 4.8</span></div>
             </div>
-            <button class="btn-mini">Cook Again</button>
           </div>
-          <div class="recent-item">
-            <div class="recent-icon">🥘</div>
-            <div class="recent-info">
-              <div class="recent-title">Chickpea Curry Bowl</div>
-              <div class="recent-meta">Made last week</div>
+          <div class="trending-card">
+            <div class="trending-card-img">🌮</div>
+            <div class="trending-card-body">
+              <div class="trending-card-title">Street-Style Tacos</div>
+              <div class="trending-card-price">£8.50</div>
+              <div class="trending-card-meta"><span>30 min</span><span>⭐ 4.7</span></div>
             </div>
-            <button class="btn-mini">Cook Again</button>
           </div>
-          <div class="recent-item">
-            <div class="recent-icon">🍳</div>
-            <div class="recent-info">
-              <div class="recent-title">Veggie Omelette</div>
-              <div class="recent-meta">Made 2 weeks ago</div>
+          <div class="trending-card">
+            <div class="trending-card-img">🍛</div>
+            <div class="trending-card-body">
+              <div class="trending-card-title">Butter Chicken Curry</div>
+              <div class="trending-card-price">£6.20</div>
+              <div class="trending-card-meta"><span>40 min</span><span>⭐ 4.7</span></div>
             </div>
-            <button class="btn-mini">Cook Again</button>
+          </div>
+          <div class="trending-card">
+            <div class="trending-card-img">🍕</div>
+            <div class="trending-card-body">
+              <div class="trending-card-title">Stone-Baked Pizza</div>
+              <div class="trending-card-price">£12.00</div>
+              <div class="trending-card-meta"><span>25 min</span><span>⭐ 4.6</span></div>
+            </div>
+          </div>
+          <div class="trending-card">
+            <div class="trending-card-img">🥗</div>
+            <div class="trending-card-body">
+              <div class="trending-card-title">Fresh Green Salad</div>
+              <div class="trending-card-price">£4.50</div>
+              <div class="trending-card-meta"><span>10 min</span><span>⭐ 4.9</span></div>
+            </div>
+          </div>
+          <div class="trending-card">
+            <div class="trending-card-img">🍅</div>
+            <div class="trending-card-body">
+              <div class="trending-card-title">Comfort Tomato Soup</div>
+              <div class="trending-card-price">£3.80</div>
+              <div class="trending-card-meta"><span>15 min</span><span>⭐ 4.5</span></div>
+            </div>
+          </div>
+          <div class="trending-card">
+            <div class="trending-card-img">🍜</div>
+            <div class="trending-card-body">
+              <div class="trending-card-title">Spicy Ramen Bowl</div>
+              <div class="trending-card-price">£5.20</div>
+              <div class="trending-card-meta"><span>25 min</span><span>⭐ 4.8</span></div>
+            </div>
+          </div>
+          <div class="trending-card">
+            <div class="trending-card-img">🫓</div>
+            <div class="trending-card-body">
+              <div class="trending-card-title">Halloumi Wrap</div>
+              <div class="trending-card-price">£5.80</div>
+              <div class="trending-card-meta"><span>15 min</span><span>⭐ 4.6</span></div>
+            </div>
+          </div>
+          <div class="trending-card">
+            <div class="trending-card-img">🍳</div>
+            <div class="trending-card-body">
+              <div class="trending-card-title">Egg Fried Rice</div>
+              <div class="trending-card-price">£3.20</div>
+              <div class="trending-card-meta"><span>20 min</span><span>⭐ 4.5</span></div>
+            </div>
+          </div>
+          <div class="trending-card">
+            <div class="trending-card-img">🧀</div>
+            <div class="trending-card-body">
+              <div class="trending-card-title">Loaded Nachos</div>
+              <div class="trending-card-price">£7.00</div>
+              <div class="trending-card-meta"><span>15 min</span><span>⭐ 4.7</span></div>
+            </div>
+          </div>
+          <div class="trending-card">
+            <div class="trending-card-img">🍄</div>
+            <div class="trending-card-body">
+              <div class="trending-card-title">Mushroom Risotto</div>
+              <div class="trending-card-price">£6.90</div>
+              <div class="trending-card-meta"><span>35 min</span><span>⭐ 4.8</span></div>
+            </div>
+          </div>
+          <div class="trending-card">
+            <div class="trending-card-img">🍔</div>
+            <div class="trending-card-body">
+              <div class="trending-card-title">BBQ Bean Burger</div>
+              <div class="trending-card-price">£5.50</div>
+              <div class="trending-card-meta"><span>20 min</span><span>⭐ 4.6</span></div>
+            </div>
           </div>
         </div>
       </div>

@@ -178,24 +178,38 @@ async function initDashboardPage(user) {
         if (statValues[2]) statValues[2].textContent = stats.friends_count;
     } catch (e) { /* stats are optional */ }
 
-    // Load saved recipes for "Recent Recipes" section
+    // Load trending recipes into the horizontal scroll strip
     try {
-        const recipes = await apiCall('recipes.php?action=saved');
-        const recentList = document.querySelector('.recent-list');
-        if (recentList && recipes.length > 0) {
-            const icons = ['🍝', '🥘', '🍳', '🍲', '🥗'];
-            recentList.innerHTML = recipes.slice(0, 3).map((r, i) => `
-                <div class="recent-item">
-                    <div class="recent-icon">${icons[i % icons.length]}</div>
-                    <div class="recent-info">
-                        <div class="recent-title">${escapeHtml(r.title)}</div>
-                        <div class="recent-meta">Saved ${timeAgo(r.saved_at)}</div>
+        const trending = await apiCall('recipes.php?action=random&count=8');
+        const trendingScroll = document.querySelector('.trending-scroll');
+        const recipes = trending.recipes || trending; // handle both {recipes:[]} and []
+        if (trendingScroll && recipes.length > 0) {
+            const icons = ['🍝', '🌮', '🍛', '🍕', '🥗', '🍜', '🥘', '🍳', '🫕', '🥙'];
+            trendingScroll.innerHTML = recipes.map((r, i) => {
+                const totalTime = (r.prep_time || 0) + (r.cook_time || 0);
+                const cost = r.estimated_cost ? `£${parseFloat(r.estimated_cost).toFixed(2)}` : '';
+                const rating = r.avg_rating ? `⭐ ${parseFloat(r.avg_rating).toFixed(1)}` : '';
+                const isNew = i === 0; // mark first card as NEW
+                const imgContent = r.image_url
+                    ? `<img src="${escapeHtml(r.image_url)}" alt="${escapeHtml(r.title)}" style="width:100%;height:100%;object-fit:cover;display:block;">`
+                    : icons[i % icons.length];
+                return `
+                    <div class="trending-card" onclick="openRecipeModal(${r.id})" title="${escapeHtml(r.title)}">
+                        <div class="trending-card-img${r.image_url ? ' has-image' : ''}">${imgContent}</div>
+                        ${isNew ? '<div class="trending-badge">NEW</div>' : ''}
+                        <div class="trending-card-body">
+                            <div class="trending-card-title">${escapeHtml(r.title)}</div>
+                            ${cost ? `<div class="trending-card-price">${cost}</div>` : ''}
+                            <div class="trending-card-meta">
+                                ${totalTime ? `<span>${totalTime} min</span>` : '<span></span>'}
+                                ${rating ? `<span>${rating}</span>` : ''}
+                            </div>
+                        </div>
                     </div>
-                    <button class="btn-mini" onclick="window.location.href='byteright_recipes.html'">Cook Again</button>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
-    } catch (e) { /* keep placeholder data */ }
+    } catch (e) { /* keep placeholder cards on error */ }
 
     // Load current meal plan preview
     try {
