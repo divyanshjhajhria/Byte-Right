@@ -22,10 +22,10 @@
       <a href="byteright_recipes.html" class="nav-link primary">Recipes</a>
       <a href="byteright_planner.html" class="nav-link primary">Meal Plan</a>
       <a href="byteright_social.html" class="nav-link primary">Social</a>
-      <a href="byteright_profile.html" class="nav-link primary username"></a>
+      <a href="byteright_profile.html" class="nav-link primary user-initial"></a>
     </div>
   </header>
-
+  <div id="toast" style="position:fixed; bottom:2em; left:50%; transform:translateX(-50%) translateY(2em); background:#7cb342; color:#fff; padding:0.75em 1.5em; border-radius:999em; font-weight:600; font-size:0.9rem; opacity:0; transition: all 0.3s ease; z-index:100; pointer-events:none;">Added to meal plan!</div>
   <main class="dashboard-container">
 
     <section class="welcome-section">
@@ -69,9 +69,9 @@
         </div>
 
         <div class="viral-actions">
-          <button class="btn-main">▶ View Recipe</button>
-          <button class="btn-secondary">＋ Add to Meal Plan</button>
-          <button class="btn-secondary">♡ Save</button>
+          <button class="btn-main" onclick="window.location.href='byteright_recipes.html'">▶ View Recipe</button>
+          <button class="btn-secondary" onclick="addToMealPlan()">＋ Add to Meal Plan</button>
+          <button class="btn-secondary" id="save-btn" onclick="toggleSave()">♡ Save</button>
         </div>
       </div>
     </section>
@@ -140,7 +140,36 @@
       <a href="byteright_login.html">Logout</a>
     </div>
   </footer>
+  <script>
+    function toggleSave() {
+      const btn = document.getElementById('save-btn');
+      const saved = btn.classList.toggle('saved');
+      btn.textContent = saved ? '♥ Saved' : '♡ Save';
+      btn.style.background = saved ? 'rgba(124,179,66,0.15)' : '';
+      btn.style.borderColor = saved ? '#7cb342' : '';
+      btn.style.color = saved ? '#689f38' : '';
+      btn.style.transform = 'scale(1.08)';
+      setTimeout(() => btn.style.transform = '', 200);
+    }
 
+    function addToMealPlan() {
+      const btn = event.currentTarget;
+      btn.textContent = '✓ Added to Meal Plan';
+      btn.style.background = 'rgba(124,179,66,0.15)';
+      btn.style.borderColor = '#7cb342';
+      btn.style.color = '#689f38';
+      btn.style.transform = 'scale(1.08)';
+      setTimeout(() => btn.style.transform = '', 200);
+
+      const toast = document.getElementById('toast');
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateX(-50%) translateY(0)';
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(-50%) translateY(2em)';
+      }, 2500);
+    }
+  </script>
   <script src="app.local.js"></script> <!-- gives dev access -->
   <script src="app.js"></script>
 </body>
