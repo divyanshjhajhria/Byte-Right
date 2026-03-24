@@ -110,15 +110,6 @@
   <script src="app.local.js"></script>
   <script src="app.js"></script>
   <script>
-    function matchSidebarHeight() {
-      var left = document.querySelector('.layout > section.panel');
-      var right = document.querySelector('.layout > aside.panel');
-      if (!left || !right) return;
-      right.style.height = '';
-      right.style.height = left.getBoundingClientRect().height + 'px';
-    }
-    matchSidebarHeight();
-    window.addEventListener('resize', matchSidebarHeight);
   </script>
 </body>
 </html>

@@ -19,6 +19,9 @@ body {
   flex-direction: column;
   overflow: hidden;
   box-sizing: border-box;
+  max-height: 85vh;
+  position: sticky;
+  top: 5em;
 }
 
 .grid {
@@ -200,6 +203,7 @@ body {
   flex-direction: column;
   overflow: hidden;
   box-sizing: border-box;
+  max-height: 80vh;
 }
 
 .grid {

@@ -178,24 +178,38 @@ async function initDashboardPage(user) {
         if (statValues[2]) statValues[2].textContent = stats.friends_count;
     } catch (e) { /* stats are optional */ }
 
-    // Load saved recipes for "Recent Recipes" section
+    // Load trending recipes into the horizontal scroll strip
     try {
-        const recipes = await apiCall('recipes.php?action=saved');
-        const recentList = document.querySelector('.recent-list');
-        if (recentList && recipes.length > 0) {
-            const icons = ['🍝', '🥘', '🍳', '🍲', '🥗'];
-            recentList.innerHTML = recipes.slice(0, 3).map((r, i) => `
-                <div class="recent-item">
-                    <div class="recent-icon">${icons[i % icons.length]}</div>
-                    <div class="recent-info">
-                        <div class="recent-title">${escapeHtml(r.title)}</div>
-                        <div class="recent-meta">Saved ${timeAgo(r.saved_at)}</div>
+        const trending = await apiCall('recipes.php?action=random&count=8');
+        const trendingScroll = document.querySelector('.trending-scroll');
+        const recipes = trending.recipes || trending; // handle both {recipes:[]} and []
+        if (trendingScroll && recipes.length > 0) {
+            const icons = ['🍝', '🌮', '🍛', '🍕', '🥗', '🍜', '🥘', '🍳', '🫕', '🥙'];
+            trendingScroll.innerHTML = recipes.map((r, i) => {
+                const totalTime = (r.prep_time || 0) + (r.cook_time || 0);
+                const cost = r.estimated_cost ? `£${parseFloat(r.estimated_cost).toFixed(2)}` : '';
+                const rating = r.avg_rating ? `⭐ ${parseFloat(r.avg_rating).toFixed(1)}` : '';
+                const isNew = i === 0; // mark first card as NEW
+                const imgContent = r.image_url
+                    ? `<img src="${escapeHtml(r.image_url)}" alt="${escapeHtml(r.title)}" style="width:100%;height:100%;object-fit:cover;display:block;">`
+                    : icons[i % icons.length];
+                return `
+                    <div class="trending-card" onclick="openRecipeModal(${r.id})" title="${escapeHtml(r.title)}">
+                        <div class="trending-card-img${r.image_url ? ' has-image' : ''}">${imgContent}</div>
+                        ${isNew ? '<div class="trending-badge">NEW</div>' : ''}
+                        <div class="trending-card-body">
+                            <div class="trending-card-title">${escapeHtml(r.title)}</div>
+                            ${cost ? `<div class="trending-card-price">${cost}</div>` : ''}
+                            <div class="trending-card-meta">
+                                ${totalTime ? `<span>${totalTime} min</span>` : '<span></span>'}
+                                ${rating ? `<span>${rating}</span>` : ''}
+                            </div>
+                        </div>
                     </div>
-                    <button class="btn-mini" onclick="window.location.href='byteright_recipes.html'">Cook Again</button>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
-    } catch (e) { /* keep placeholder data */ }
+    } catch (e) { /* keep placeholder cards on error */ }
 
     // Load current meal plan preview
     try {
@@ -532,17 +546,17 @@ function renderMealPlan(grid, plan) {
 
 async function loadShoppingList(aside, mealPlanId) {
     try {
-        // Generate shopping list from the plan
         const list = await apiCall(`shopping.php?action=generate&meal_plan_id=${mealPlanId}`, { method: 'POST' });
         renderShoppingList(aside, list);
     } catch (e) {
-        // Try loading existing list
         try {
             const list = await apiCall('shopping.php?action=current');
             renderShoppingList(aside, list);
         } catch (e2) {
             // Keep placeholder
         }
+    } finally {
+        aside.style.maxHeight = aside.closest('.layout')?.querySelector('section.panel')?.getBoundingClientRect().height + 'px';
     }
 }
 
@@ -585,6 +599,7 @@ function renderShoppingList(aside, list) {
     `;
 
     aside.innerHTML = html;
+    if (typeof matchSidebarHeight === 'function') matchSidebarHeight();
 }
 
 // ============================================
@@ -709,11 +724,18 @@ async function loadFeed(container, user) {
                         <span class="comments-count">${post.comments_count} comment${post.comments_count !== 1 ? 's' : ''}</span>
                     </div>
                     <div class="post-actions-bar">
-                        <button class="action-btn ${liked ? 'active' : ''}" data-action="like" data-post-id="${post.id}">
-                            👍 ${liked ? 'Liked' : 'Like'}
+                        <button class="action-btn ig-action-btn ${liked ? 'liked' : ''}" data-action="like" data-post-id="${post.id}">
+                            <svg class="ig-icon heart-icon" width="20" height="20" viewBox="0 0 24 24" fill="${liked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                            </svg>
+                            <span class="ig-action-label">${post.likes_count || 0}</span>
                         </button>
-                        <button class="action-btn" data-action="comment" data-post-id="${post.id}">💬 Comment</button>
-                        <button class="action-btn" data-action="save" data-post-id="${post.id}">🔖 Save</button>
+                        <button class="action-btn ig-action-btn" data-action="comment" data-post-id="${post.id}">
+                            <svg class="ig-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            </svg>
+                            <span class="ig-action-label">${post.comments_count || 0}</span>
+                        </button>
                     </div>
                     <div class="comments-section" id="comments-${post.id}" style="display:none;padding:12px 0 0 0;border-top:1px solid #e0d6c8;margin-top:12px;">
                         <div class="comments-list" style="max-height:200px;overflow-y:auto;margin-bottom:10px;"></div>
@@ -736,15 +758,16 @@ async function loadFeed(container, user) {
         container.querySelectorAll('[data-action="like"]').forEach(btn => {
             btn.addEventListener('click', async () => {
                 const postId = btn.dataset.postId;
-                const isLiked = btn.classList.contains('active');
+                const isLiked = btn.classList.contains('liked');
                 try {
                     await apiCall(`social.php?action=${isLiked ? 'unlike' : 'like'}&post_id=${postId}`, { method: 'POST' });
                     btn.classList.toggle('active');
-                    btn.innerHTML = btn.classList.contains('active') ? '👍 Liked' : '👍 Like';
-                    const statsEl = btn.closest('.post-card').querySelector('.likes-count');
+                    btn.classList.toggle('liked');
+                    const heart = btn.querySelector('.heart-icon');
+                    if (heart) heart.setAttribute('fill', btn.classList.contains('liked') ? 'currentColor' : 'none');            const statsEl = btn.querySelector('.ig-action-label');        
                     const currentCount = parseInt(statsEl.textContent) || 0;
                     const newCount = isLiked ? Math.max(0, currentCount - 1) : currentCount + 1;
-                    statsEl.textContent = `${newCount} like${newCount !== 1 ? 's' : ''}`;
+                    statsEl.textContent = `${newCount}`;
                 } catch (err) {
                     showToast(err.error || 'Error', 'error');
                 }

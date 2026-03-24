@@ -322,9 +322,8 @@ body {
 }
 
 .post-actions-bar {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  display: flex;
+  gap: 4px;
 }
 
 .action-btn {
@@ -606,3 +605,24 @@ body {
     flex: 1;
   }
 }
+
+.ig-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #8a7a6a;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.ig-action-btn:hover { color: #4a3728; transform: scale(1.08); }
+.ig-action-btn.liked { color: #e53935 !important; }
+.ig-icon { width: 22px; height: 22px; transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1); }
+.ig-action-btn:hover .ig-icon { transform: scale(1.15); }
+.ig-action-btn.liked .heart-icon { animation: heartPop 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+@keyframes heartPop { 0%,100% { transform: scale(1); } 50% { transform: scale(1.35); } }
+.ig-action-label { font-size: 0.82rem; font-weight: 600; }
