@@ -353,6 +353,42 @@ foreach ($userIds as $name => $uid) {
 }
 echo "Created $activityCount activity log entries\n";
 
+// ============================================
+// 8. CREATE DEMO MEAL PLAN FOR FIRST USER
+// ============================================
+
+$firstUserId = reset($userIds);
+$existingPlan = $db->prepare('SELECT id FROM meal_plans WHERE user_id = ?');
+$existingPlan->execute([$firstUserId]);
+
+if ($existingPlan->fetch()) {
+    echo "Meal plan already exists for first demo user, skipping\n";
+} else {
+    // Create a weekly meal plan
+    $db->prepare('INSERT INTO meal_plans (user_id, budget, status) VALUES (?, 35.00, "active")')->execute([$firstUserId]);
+    $planId = (int) $db->lastInsertId();
+
+    // Pick recipes for breakfast and dinner across the week
+    $breakfastRecipes = $db->query("SELECT id, title, estimated_cost, cook_time FROM recipes WHERE JSON_CONTAINS(tags, '\"breakfast\"') OR title LIKE '%oat%' OR title LIKE '%toast%' OR title LIKE '%pancake%' LIMIT 7")->fetchAll();
+    $dinnerRecipes = $db->query("SELECT id, title, estimated_cost, cook_time FROM recipes WHERE JSON_CONTAINS(tags, '\"dinner\"') OR JSON_CONTAINS(tags, '\"lunch\"') OR estimated_cost > 2 LIMIT 7")->fetchAll();
+
+    $stmtItem = $db->prepare('INSERT INTO meal_plan_items (meal_plan_id, day_of_week, meal_type, recipe_id, custom_meal_name, estimated_cost) VALUES (?, ?, ?, ?, ?, ?)');
+
+    for ($day = 0; $day < 7; $day++) {
+        // Breakfast
+        $br = $breakfastRecipes[$day % count($breakfastRecipes)] ?? null;
+        if ($br) {
+            $stmtItem->execute([$planId, $day, 'breakfast', $br['id'], $br['title'], $br['estimated_cost'] ?: 1.50]);
+        }
+        // Dinner
+        $dn = $dinnerRecipes[$day % count($dinnerRecipes)] ?? null;
+        if ($dn) {
+            $stmtItem->execute([$planId, $day, 'dinner', $dn['id'], $dn['title'], $dn['estimated_cost'] ?: 4.00]);
+        }
+    }
+    echo "Created demo meal plan (ID $planId) with " . min(7, count($breakfastRecipes)) . " breakfasts and " . min(7, count($dinnerRecipes)) . " dinners\n";
+}
+
 echo "\n=== Demo Data Seeding Complete ===\n";
 echo "Demo user password: demo12345\n";
 echo "You can log in as any demo user, e.g. sarah.mitchell@manchester.ac.uk\n";

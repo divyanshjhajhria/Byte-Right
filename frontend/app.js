@@ -265,7 +265,6 @@ async function initDashboardPage(user) {
         const trendingScroll = document.querySelector('.trending-scroll');
         const recipes = trending.recipes || trending; // handle both {recipes:[]} and []
         if (trendingScroll && recipes.length > 0) {
-            const icons = ['🍝', '🌮', '🍛', '🍕', '🥗', '🍜', '🥘', '🍳', '🫕', '🥙'];
             trendingScroll.innerHTML = recipes.map((r, i) => {
                 const totalTime = (r.prep_time || 0) + (r.cook_time || 0);
                 const cost = r.estimated_cost ? `£${parseFloat(r.estimated_cost).toFixed(2)}` : '';
@@ -273,7 +272,7 @@ async function initDashboardPage(user) {
                 const isNew = i === 0; // mark first card as NEW
                 const imgContent = r.image_url
                     ? `<img src="${escapeHtml(r.image_url)}" alt="${escapeHtml(r.title)}" style="width:100%;height:100%;object-fit:cover;display:block;">`
-                    : icons[i % icons.length];
+                    : getRecipeIcon(r);
                 return `
                     <div class="trending-card" onclick="openRecipeModal(${r.id})" title="${escapeHtml(r.title)}">
                         <div class="trending-card-img${r.image_url ? ' has-image' : ''}">${imgContent}</div>
@@ -999,30 +998,42 @@ async function loadActiveFriends() {
     if (!container) return;
 
     try {
-        const friends = await apiCall('friends.php?action=list');
-        if (!Array.isArray(friends) || friends.length === 0) {
-            container.innerHTML = '<p class="empty-state-small">Add friends to see who is cooking!</p>';
+        const data = await apiCall('friends.php?action=list');
+        // API returns {friends: [], count: N}
+        const friendsList = data.friends || data;
+        const list = Array.isArray(friendsList) ? friendsList : [];
+
+        if (list.length === 0) {
+            container.innerHTML = '<p style="text-align:center;padding:12px;color:#8a7a6a;font-size:0.85rem;">Add friends to see them here.</p>';
             return;
         }
 
-        // Show up to 5 friends
-        const displayed = friends.slice(0, 5);
+        // Show up to 5 friends, prioritise those with recent posts
+        const sorted = [...list].sort((a, b) => (b.recent_posts || 0) - (a.recent_posts || 0));
+        const displayed = sorted.slice(0, 5);
         container.innerHTML = displayed.map((friend, i) => {
             const avatars = ['🧑‍🍳', '👨‍🍳', '👩‍🍳', '🧑', '👨', '👩'];
-            const avatar = avatars[i % avatars.length];
-            const name = friend.name || friend.email || 'Friend';
-            const since = friend.since ? `Friends since ${new Date(friend.since).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}` : 'Friend';
+            const avatar = friend.avatar_path || avatars[i % avatars.length];
+            const name = friend.name || 'Friend';
+            let status = '';
+            if (friend.recent_posts > 0) {
+                status = `${friend.recent_posts} post${friend.recent_posts > 1 ? 's' : ''} this week`;
+            } else if (friend.friends_since) {
+                status = `Friends since ${new Date(friend.friends_since).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}`;
+            } else {
+                status = 'Friend';
+            }
             return `
                 <div class="active-user">
                     <div class="user-avatar-tiny">${avatar}</div>
                     <div class="active-user-info">
-                        <div class="active-user-name">${name}</div>
-                        <div class="active-user-status">${since}</div>
+                        <div class="active-user-name">${escapeHtml(name)}</div>
+                        <div class="active-user-status">${status}</div>
                     </div>
                 </div>`;
         }).join('');
     } catch (e) {
-        // Keep placeholder HTML on error
+        container.innerHTML = '<p style="text-align:center;padding:12px;color:#8a7a6a;font-size:0.85rem;">Add friends to see them here.</p>';
     }
 }
 
@@ -1034,32 +1045,16 @@ async function loadTrendingSidebar() {
     if (!container) return;
 
     try {
-        const recipes = await apiCall('recipes.php?action=random&count=3');
-        const list = Array.isArray(recipes) ? recipes : (recipes?.recipes || []);
+        const data = await apiCall('recipes.php?action=random&count=3');
+        const list = Array.isArray(data) ? data : (data?.recipes || []);
 
         if (list.length === 0) {
-            container.innerHTML = '<p class="empty-state-small">No recipes found. Set up the database first.</p>';
+            container.innerHTML = '<p style="text-align:center;padding:12px;color:#8a7a6a;font-size:0.85rem;">No recipes available.</p>';
             return;
         }
 
-        const tagIcons = {
-            vegetarian: '🥗', vegan: '🌱', pasta: '🍝', chicken: '🍗',
-            pizza: '🍕', dessert: '🍰', soup: '🍲', breakfast: '🥞',
-            salad: '🥗', seafood: '🦐', rice: '🍚', curry: '🍛',
-            sandwich: '🥪', default: '🍽️'
-        };
-
         container.innerHTML = list.map(recipe => {
-            const tags = recipe.tags || [];
-            let icon = tagIcons.default;
-            const titleLower = (recipe.title || '').toLowerCase();
-            for (const [key, emoji] of Object.entries(tagIcons)) {
-                if (key === 'default') continue;
-                if (tags.some(t => t.toLowerCase().includes(key)) || titleLower.includes(key)) {
-                    icon = emoji;
-                    break;
-                }
-            }
+            const icon = getRecipeIcon(recipe);
             const time = recipe.cook_time ? `${recipe.cook_time} min` : '';
             const difficulty = recipe.difficulty || '';
             const meta = [difficulty, time].filter(Boolean).join(' · ') || 'Quick & easy';
@@ -1068,13 +1063,13 @@ async function loadTrendingSidebar() {
                 <div class="trending-item">
                     <span class="trending-icon">${icon}</span>
                     <div class="trending-info">
-                        <div class="trending-name">${recipe.title}</div>
+                        <div class="trending-name">${escapeHtml(recipe.title)}</div>
                         <div class="trending-meta">${meta}</div>
                     </div>
                 </div>`;
         }).join('');
     } catch (e) {
-        // Keep placeholder HTML on error
+        container.innerHTML = '<p style="text-align:center;padding:12px;color:#8a7a6a;font-size:0.85rem;">Could not load recipes.</p>';
     }
 }
 

@@ -73,6 +73,16 @@ This will automatically:
 php backend/setup.php
 ```
 
+**Optional: Seed demo data for presentation**
+
+After running setup.php, you can populate the app with demo users, friendships, social posts, comments, likes, meal plans, and activity data:
+
+```bash
+php backend/seed_demo_data.php
+```
+
+This creates 8 demo users (password: `demo12345`) with realistic social interactions. Log in as any demo user, e.g. `sarah.mitchell@manchester.ac.uk` to see the full app experience.
+
 **Option C: Manual import**
 
 1. Open phpMyAdmin at `http://localhost/phpmyadmin`
