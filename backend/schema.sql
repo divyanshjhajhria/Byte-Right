@@ -99,6 +99,7 @@ CREATE TABLE meal_plan_items (
     meal_type ENUM('breakfast', 'lunch', 'dinner', 'snack') NOT NULL,
     recipe_id INT DEFAULT NULL,
     custom_meal_name VARCHAR(200) DEFAULT NULL,
+    estimated_cost DECIMAL(6,2) DEFAULT NULL,
     FOREIGN KEY (meal_plan_id) REFERENCES meal_plans(id) ON DELETE CASCADE,
     FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE SET NULL
 );

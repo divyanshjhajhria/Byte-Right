@@ -322,51 +322,80 @@ function generateFromLocal(PDO $db, float $budget, array $dietaryPrefs, string $
 }
 
 /**
- * Save the generated plan to database
+ * Recalculate total_estimated_cost on a meal plan from its items.
+ * Items with a recipe_id get cost from the recipes table;
+ * items with only estimated_cost (API / custom) use that value.
+ */
+function recalculateMealPlanTotal(PDO $db, int $planId): float {
+    $stmt = $db->prepare('
+        SELECT mpi.recipe_id, mpi.estimated_cost AS item_cost, r.estimated_cost AS recipe_cost
+        FROM meal_plan_items mpi
+        LEFT JOIN recipes r ON r.id = mpi.recipe_id
+        WHERE mpi.meal_plan_id = ?
+    ');
+    $stmt->execute([$planId]);
+    $rows = $stmt->fetchAll();
+
+    $total = 0;
+    foreach ($rows as $row) {
+        // Prefer recipe cost for local recipes, fall back to item-level cost (API / custom)
+        $total += (float) ($row['recipe_cost'] ?? $row['item_cost'] ?? 0);
+    }
+    $total = round($total, 2);
+
+    $db->prepare('UPDATE meal_plans SET total_estimated_cost = ? WHERE id = ?')
+       ->execute([$total, $planId]);
+
+    return $total;
+}
+
+/**
+ * Save the generated plan to database (transactional)
  */
 function saveMealPlan(PDO $db, int $userId, string $weekStart, float $budget, array $items): int {
-    // Delete existing plan for this week
-    $stmt = $db->prepare('SELECT id FROM meal_plans WHERE user_id = ? AND week_start = ?');
-    $stmt->execute([$userId, $weekStart]);
-    $existing = $stmt->fetch();
-    if ($existing) {
-        $db->prepare('DELETE FROM meal_plans WHERE id = ?')->execute([$existing['id']]);
-    }
-
-    // Calculate total cost
-    $totalCost = 0;
-    foreach ($items as $item) {
-        if (isset($item['recipe_id'])) {
-            $stmt = $db->prepare('SELECT estimated_cost FROM recipes WHERE id = ?');
-            $stmt->execute([$item['recipe_id']]);
-            $r = $stmt->fetch();
-            $totalCost += ($r['estimated_cost'] ?? 0);
+    $db->beginTransaction();
+    try {
+        // Delete existing plan for this week
+        $stmt = $db->prepare('SELECT id FROM meal_plans WHERE user_id = ? AND week_start = ?');
+        $stmt->execute([$userId, $weekStart]);
+        $existing = $stmt->fetch();
+        if ($existing) {
+            $db->prepare('DELETE FROM meal_plans WHERE id = ?')->execute([$existing['id']]);
         }
+
+        // Insert plan header (total recalculated after items are inserted)
+        $stmt = $db->prepare('
+            INSERT INTO meal_plans (user_id, week_start, budget_target, total_estimated_cost)
+            VALUES (?, ?, ?, 0)
+        ');
+        $stmt->execute([$userId, $weekStart, $budget]);
+        $planId = (int) $db->lastInsertId();
+
+        // Insert items (include estimated_cost for API / custom meals)
+        $stmt = $db->prepare('
+            INSERT INTO meal_plan_items (meal_plan_id, day_of_week, meal_type, recipe_id, custom_meal_name, estimated_cost)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ');
+        foreach ($items as $item) {
+            $stmt->execute([
+                $planId,
+                $item['day_of_week'],
+                $item['meal_type'],
+                $item['recipe_id'] ?? null,
+                $item['custom_meal_name'] ?? null,
+                $item['estimated_cost'] ?? null,
+            ]);
+        }
+
+        // Recalculate total from actual item costs
+        recalculateMealPlanTotal($db, $planId);
+
+        $db->commit();
+        return $planId;
+    } catch (\Throwable $e) {
+        $db->rollBack();
+        throw $e;
     }
-
-    $stmt = $db->prepare('
-        INSERT INTO meal_plans (user_id, week_start, budget_target, total_estimated_cost)
-        VALUES (?, ?, ?, ?)
-    ');
-    $stmt->execute([$userId, $weekStart, $budget, $totalCost]);
-    $planId = (int) $db->lastInsertId();
-
-    // Insert items
-    $stmt = $db->prepare('
-        INSERT INTO meal_plan_items (meal_plan_id, day_of_week, meal_type, recipe_id, custom_meal_name)
-        VALUES (?, ?, ?, ?, ?)
-    ');
-    foreach ($items as $item) {
-        $stmt->execute([
-            $planId,
-            $item['day_of_week'],
-            $item['meal_type'],
-            $item['recipe_id'] ?? null,
-            $item['custom_meal_name'] ?? null,
-        ]);
-    }
-
-    return $planId;
 }
 
 /**
@@ -383,7 +412,7 @@ function loadFullPlan(PDO $db, int $planId): array {
 
     $stmt = $db->prepare('
         SELECT mpi.*, r.title as recipe_title, r.prep_time, r.cook_time,
-               r.estimated_cost, r.difficulty, r.tags, r.ingredients as recipe_ingredients
+               r.estimated_cost as recipe_cost, r.difficulty, r.tags, r.ingredients as recipe_ingredients
         FROM meal_plan_items mpi
         LEFT JOIN recipes r ON r.id = mpi.recipe_id
         WHERE mpi.meal_plan_id = ?
@@ -398,6 +427,7 @@ function loadFullPlan(PDO $db, int $planId): array {
     }
 
     $plan['items'] = $items;
+    $plan['budget_remaining'] = round((float)($plan['budget_target'] ?? 0) - (float)($plan['total_estimated_cost'] ?? 0), 2);
     return $plan;
 }
 
@@ -450,21 +480,25 @@ function updateMealSlot(): void {
         jsonResponse(['error' => 'item_id is required'], 400);
     }
 
-    // Verify ownership
+    // Verify ownership and get parent plan id
     $stmt = $db->prepare('
-        SELECT mpi.id FROM meal_plan_items mpi
+        SELECT mpi.id, mpi.meal_plan_id FROM meal_plan_items mpi
         JOIN meal_plans mp ON mp.id = mpi.meal_plan_id
         WHERE mpi.id = ? AND mp.user_id = ?
     ');
     $stmt->execute([$itemId, $userId]);
-    if (!$stmt->fetch()) {
+    $row = $stmt->fetch();
+    if (!$row) {
         jsonResponse(['error' => 'Not found or not authorized'], 403);
     }
 
     $stmt = $db->prepare('UPDATE meal_plan_items SET recipe_id = ?, custom_meal_name = ? WHERE id = ?');
     $stmt->execute([$recipeId, $customName, $itemId]);
 
-    jsonResponse(['success' => true]);
+    // Recalculate plan total so the front-end stays in sync
+    $newTotal = recalculateMealPlanTotal($db, (int) $row['meal_plan_id']);
+
+    jsonResponse(['success' => true, 'total_estimated_cost' => $newTotal]);
 }
 
 function deleteMealPlan(): void {

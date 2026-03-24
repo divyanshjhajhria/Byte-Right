@@ -31,6 +31,7 @@ $migrations = [
         expiry_date DATE DEFAULT NULL,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )",
+    "ALTER TABLE meal_plan_items ADD COLUMN estimated_cost DECIMAL(6,2) DEFAULT NULL",
 ];
 
 foreach ($migrations as $sql) {
@@ -386,7 +387,13 @@ if ($existingPlan->fetch()) {
             $stmtItem->execute([$planId, $day, 'dinner', $dn['id'], $dn['title'], $dn['estimated_cost'] ?: 4.00]);
         }
     }
-    echo "Created demo meal plan (ID $planId) with " . min(7, count($breakfastRecipes)) . " breakfasts and " . min(7, count($dinnerRecipes)) . " dinners\n";
+    // Recalculate total_estimated_cost from items
+    $totalCost = $db->prepare('SELECT COALESCE(SUM(estimated_cost), 0) FROM meal_plan_items WHERE meal_plan_id = ?');
+    $totalCost->execute([$planId]);
+    $total = (float) $totalCost->fetchColumn();
+    $db->prepare('UPDATE meal_plans SET total_estimated_cost = ? WHERE id = ?')->execute([$total, $planId]);
+
+    echo "Created demo meal plan (ID $planId) with " . min(7, count($breakfastRecipes)) . " breakfasts and " . min(7, count($dinnerRecipes)) . " dinners (total £" . number_format($total, 2) . ")\n";
 }
 
 echo "\n=== Demo Data Seeding Complete ===\n";
