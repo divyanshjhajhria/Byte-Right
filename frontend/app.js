@@ -40,6 +40,46 @@ async function apiCall(endpoint, options = {}) {
     return data;
 }
 
+/**
+ * Custom confirmation dialog to replace native confirm()
+ */
+function showConfirmDialog(message, onConfirm) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position:fixed;top:0;left:0;width:100%;height:100%;
+        background:rgba(0,0,0,0.4);z-index:99999;display:flex;
+        align-items:center;justify-content:center;padding:20px;
+    `;
+    overlay.innerHTML = `
+        <div style="
+            background:#fff7e6;border-radius:16px;max-width:380px;width:100%;
+            padding:28px;box-shadow:0 12px 40px rgba(0,0,0,0.2);
+            font-family:Inter,sans-serif;text-align:center;
+        ">
+            <p style="font-size:1rem;color:#3e2723;margin:0 0 20px 0;line-height:1.5;">${message}</p>
+            <div style="display:flex;gap:10px;justify-content:center;">
+                <button class="confirm-cancel-btn" style="
+                    padding:10px 22px;border-radius:10px;border:1px solid #c1aa7b;
+                    background:transparent;color:#5d4a3a;cursor:pointer;
+                    font-size:0.9rem;font-weight:600;font-family:inherit;
+                ">Cancel</button>
+                <button class="confirm-ok-btn" style="
+                    padding:10px 22px;border-radius:10px;border:none;
+                    background:#e53935;color:#fff;cursor:pointer;
+                    font-size:0.9rem;font-weight:600;font-family:inherit;
+                ">Delete</button>
+            </div>
+        </div>
+    `;
+    overlay.querySelector('.confirm-cancel-btn').addEventListener('click', () => overlay.remove());
+    overlay.querySelector('.confirm-ok-btn').addEventListener('click', () => {
+        overlay.remove();
+        onConfirm();
+    });
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+}
+
 function showToast(message, type = 'success') {
     let toast = document.getElementById('byteright-toast');
     if (!toast) {
@@ -57,6 +97,39 @@ function showToast(message, type = 'success') {
     toast.style.background = type === 'success' ? '#4caf50' : type === 'error' ? '#e53935' : '#ff9800';
     toast.style.opacity = '1';
     setTimeout(() => { toast.style.opacity = '0'; }, 3500);
+}
+
+/**
+ * Return a deterministic icon for a recipe based on its title and tags
+ */
+function getRecipeIcon(recipe) {
+    const titleLower = (recipe.title || '').toLowerCase();
+    const tags = (recipe.tags || []).map(t => (typeof t === 'string' ? t : '').toLowerCase());
+    const all = titleLower + ' ' + tags.join(' ');
+
+    const map = [
+        [['pasta', 'spaghetti', 'noodle', 'ramen', 'penne', 'macaroni'], '🍝'],
+        [['pizza', 'flatbread'], '🍕'],
+        [['curry', 'tikka', 'masala', 'korma', 'biryani'], '🍛'],
+        [['soup', 'broth', 'chowder', 'stew'], '🍲'],
+        [['salad', 'slaw', 'bowl'], '🥗'],
+        [['burger', 'sandwich', 'wrap', 'toast', 'bagel'], '🥪'],
+        [['pancake', 'waffle', 'oats', 'cereal', 'breakfast', 'porridge'], '🥞'],
+        [['chicken', 'turkey', 'poultry'], '🍗'],
+        [['egg', 'omelette', 'scramble', 'frittata', 'shakshuka'], '🍳'],
+        [['rice', 'fried rice', 'risotto', 'pilaf'], '🍚'],
+        [['taco', 'burrito', 'enchilada', 'quesadilla', 'nacho'], '🌮'],
+        [['cake', 'brownie', 'dessert', 'cookie', 'pudding', 'muffin'], '🍰'],
+        [['fish', 'seafood', 'prawn', 'shrimp', 'salmon', 'tuna'], '🐟'],
+        [['stir', 'fry', 'wok'], '🥘'],
+    ];
+
+    for (const [keywords, icon] of map) {
+        for (const kw of keywords) {
+            if (all.includes(kw)) return icon;
+        }
+    }
+    return '🍽️';
 }
 
 function timeAgo(dateStr) {
@@ -387,8 +460,7 @@ async function initRecipesPage(user) {
             } else {
                 recipeList.innerHTML = data.recipes.map(r => {
                     const totalTime = (r.prep_time || 0) + (r.cook_time || 0);
-                    const icons = ['🍳', '🥘', '🍝', '🍲', '🥗', '🍛'];
-                    const icon = icons[Math.floor(Math.random() * icons.length)];
+                    const icon = getRecipeIcon(r);
                     return `
                         <article class="recipe-card" data-id="${r.id || ''}" style="cursor:${r.id ? 'pointer' : 'default'};">
                             <div class="recipe-icon">${icon}</div>
@@ -885,16 +957,18 @@ async function loadFeed(container, user) {
 
         // Delete buttons
         container.querySelectorAll('.btn-delete-post').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                if (!confirm('Delete this post?')) return;
+            btn.addEventListener('click', () => {
                 const postId = btn.dataset.postId;
-                try {
-                    await apiCall(`social.php?action=delete&post_id=${postId}`, { method: 'DELETE' });
-                    btn.closest('.post-card').remove();
-                    showToast('Post deleted');
-                } catch (err) {
-                    showToast(err.error || 'Error', 'error');
-                }
+                const card = btn.closest('.post-card');
+                showConfirmDialog('Delete this post? This cannot be undone.', async () => {
+                    try {
+                        await apiCall(`social.php?action=delete&post_id=${postId}`, { method: 'DELETE' });
+                        card.remove();
+                        showToast('Post deleted');
+                    } catch (err) {
+                        showToast(err.error || 'Error', 'error');
+                    }
+                });
             });
         });
 
@@ -1107,7 +1181,7 @@ async function initProfilePage(user) {
         if (activityList && activity.length > 0) {
             const iconMap = {
                 recipe_saved: '💾', recipe_cooked: '🍳', post_created: '📸',
-                plan_created: '📅', friend_added: '👥'
+                plan_created: '📅', friend_added: '👥', account_created: '🎉'
             };
             activityList.innerHTML = activity.map(a => `
                 <div class="activity-item">
