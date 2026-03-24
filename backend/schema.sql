@@ -198,7 +198,7 @@ CREATE TABLE fridge_items (
 CREATE TABLE activity_log (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    action_type ENUM('recipe_saved', 'recipe_cooked', 'post_created', 'plan_created', 'friend_added') NOT NULL,
+    action_type ENUM('recipe_saved', 'recipe_cooked', 'post_created', 'plan_created', 'friend_added', 'account_created') NOT NULL,
     reference_id INT DEFAULT NULL,
     description VARCHAR(255) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

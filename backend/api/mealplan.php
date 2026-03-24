@@ -199,6 +199,21 @@ function generateFromLocal(PDO $db, float $budget, array $dietaryPrefs, string $
     unset($r);
 
     if (empty($recipes)) {
+        // Fallback: relax time filter but keep dietary restrictions
+        $fallbackSql = 'SELECT * FROM recipes WHERE 1=1';
+        $fallbackParams = [];
+        foreach ($dietaryPrefs as $pref) {
+            $tag = strtolower(str_replace('-', '_', $pref));
+            $fallbackSql .= ' AND JSON_CONTAINS(tags, ?)';
+            $fallbackParams[] = json_encode($tag);
+        }
+        $stmt = $db->prepare($fallbackSql);
+        $stmt->execute($fallbackParams);
+        $recipes = $stmt->fetchAll();
+    }
+
+    // Final fallback if still empty (no recipes match dietary prefs at all)
+    if (empty($recipes)) {
         $stmt = $db->prepare('SELECT * FROM recipes');
         $stmt->execute();
         $recipes = $stmt->fetchAll();
@@ -351,15 +366,6 @@ function loadFullPlan(PDO $db, int $planId): array {
         jsonResponse(['error' => 'Meal plan not found'], 404);
     }
 
-    $stmt = $db->prepare('
-        SELECT mpi.*, r.title as recipe_title, r.prep_time, r.cook_time,
-               r.estimated_cost, r.difficulty, r.tags, r.ingredients as recipe_ingredients
-        FROM meal_plan_items mpi
-        LEFT JOIN recipes r ON r.id = mpi.recipe_id
-        ORDER BY mpi.day_of_week, FIELD(mpi.meal_type, "breakfast", "lunch", "dinner", "snack")
-    ');
-    $stmt->execute();
-    // Need to filter by meal_plan_id
     $stmt = $db->prepare('
         SELECT mpi.*, r.title as recipe_title, r.prep_time, r.cook_time,
                r.estimated_cost, r.difficulty, r.tags, r.ingredients as recipe_ingredients

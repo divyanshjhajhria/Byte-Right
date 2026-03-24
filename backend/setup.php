@@ -65,7 +65,7 @@ try {
     echo "Next steps:\n";
     echo "1. Add your Spoonacular API key to backend/config/database.php\n";
     echo "2. Start your PHP server: php -S localhost:8000\n";
-    echo "3. Open: http://localhost:8000/HTML/updated/byteright_login.html\n";
+    echo "3. Open: http://localhost/Byte-Right/frontend/byteright_login.html\n";
 
 } catch (PDOException $e) {
     die("DATABASE ERROR: " . $e->getMessage() . "\n\nMake sure MySQL is running.\n");

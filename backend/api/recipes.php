@@ -413,11 +413,11 @@ function getSavedRecipes(): void {
 }
 
 function getRandomRecipes(): void {
-    $count = min((int) ($_GET['count'] ?? 5), 20);
+    $count = min(max((int) ($_GET['count'] ?? 5), 1), 20);
     $db = getDB();
 
-    $stmt = $db->prepare('SELECT * FROM recipes ORDER BY RAND() LIMIT ?');
-    $stmt->execute([$count]);
+    // Use direct query with validated int to avoid LIMIT binding issues on some MySQL versions
+    $stmt = $db->query('SELECT * FROM recipes ORDER BY RAND() LIMIT ' . $count);
     $recipes = $stmt->fetchAll();
 
     foreach ($recipes as &$r) {

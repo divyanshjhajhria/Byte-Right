@@ -16,6 +16,20 @@ define('SPOONACULAR_API_KEY', '');  // Add your key here
 define('UPLOAD_DIR', __DIR__ . '/../uploads/');
 define('MAX_UPLOAD_SIZE', 5 * 1024 * 1024); // 5MB
 
+// CORS headers for cross-origin development setups
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+$allowedOrigins = ['http://localhost', 'http://localhost:8080', 'http://127.0.0.1'];
+if (in_array($origin, $allowedOrigins) || str_starts_with($origin, 'http://localhost:')) {
+    header('Access-Control-Allow-Origin: ' . $origin);
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization');
+}
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(204);
+    exit;
+}
+
 /**
  * Get PDO database connection
  */
