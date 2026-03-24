@@ -24,7 +24,15 @@ async function apiCall(endpoint, options = {}) {
     }
 
     const res = await fetch(url, { ...defaults, ...options });
-    const data = await res.json();
+
+    // Parse response safely - handle non-JSON responses (PHP errors, blank responses)
+    let data;
+    const text = await res.text();
+    try {
+        data = JSON.parse(text);
+    } catch (parseError) {
+        throw { status: res.status, error: 'Server returned an invalid response', raw: text.substring(0, 200) };
+    }
 
     if (!res.ok) {
         throw { status: res.status, ...data };
@@ -74,9 +82,9 @@ async function checkAuth() {
             window.location.href = 'byteright_login.html';
             return null;
         }
-        // Replace {username} placeholders on the page
-        document.querySelectorAll('*').forEach(el => {
-            if (el.children.length === 0 && el.textContent.includes('{username}')) {
+        // Replace {username} placeholders on the page (targeted selectors, not full DOM scan)
+        document.querySelectorAll('.username, [data-username]').forEach(el => {
+            if (el.textContent.includes('{username}')) {
                 el.textContent = el.textContent.replace(/\{username\}/g, data.user.name);
             }
             if (el.value && el.value.includes('{username}')) {
@@ -174,7 +182,7 @@ async function initDashboardPage(user) {
         const stats = await apiCall('profile.php?action=stats');
         const statValues = document.querySelectorAll('.stat-mini-value');
         if (statValues[0]) statValues[0].textContent = stats.recipes_saved;
-        if (statValues[1]) statValues[1].textContent = `£${stats.total_saved}`;
+        if (statValues[1]) statValues[1].textContent = `£${stats.under_budget_by ?? stats.total_saved}`;
         if (statValues[2]) statValues[2].textContent = stats.friends_count;
     } catch (e) { /* stats are optional */ }
 
@@ -637,7 +645,7 @@ async function initSocialPage(user) {
     fileInput.addEventListener('change', () => {
         if (fileInput.files[0]) {
             selectedFile = fileInput.files[0];
-            uploadPhotoBtn.textContent = `📷 ${selectedFile.name}`;
+            uploadPhotoBtn.textContent = '1 image selected';
         }
     });
 
@@ -829,10 +837,15 @@ async function loadFeed(container, user) {
                     });
                     input.value = '';
 
-                    // Update comment count in stats
+                    // Update comment count in stats text
                     const statsEl = btn.closest('.post-card').querySelector('.comments-count');
                     const currentCount = parseInt(statsEl.textContent) || 0;
-                    statsEl.textContent = `${currentCount + 1} comment${currentCount + 1 !== 1 ? 's' : ''}`;
+                    const newCount = currentCount + 1;
+                    statsEl.textContent = `${newCount} comment${newCount !== 1 ? 's' : ''}`;
+
+                    // Also update the comment button icon count to stay in sync
+                    const commentBtn = btn.closest('.post-card').querySelector('[data-action="comment"] .ig-action-label');
+                    if (commentBtn) commentBtn.textContent = newCount;
 
                     // Reload comments
                     const commentsList = section.querySelector('.comments-list');
@@ -967,7 +980,7 @@ async function initProfilePage(user) {
 
         // Activity tab stats
         const statCards = document.querySelectorAll('.stat-card-value');
-        if (statCards[0]) statCards[0].textContent = `£${stats.total_saved}`;
+        if (statCards[0]) statCards[0].textContent = `£${stats.under_budget_by ?? stats.total_saved}`;
         if (statCards[1]) statCards[1].textContent = stats.recipes_saved;
         if (statCards[2]) statCards[2].textContent = stats.posts_count;
     } catch (e) { /* keep defaults */ }

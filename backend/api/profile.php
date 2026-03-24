@@ -189,22 +189,24 @@ function getStats(): void {
     $stmt->execute([$userId]);
     $plansCount = $stmt->fetch()['count'];
 
-    // Estimated total saved (sum of savings from meal plans)
+    // Total amount under budget across all meal plans
+    // Note: this is "budget surplus" (budget - estimated cost), not real-world savings
     $stmt = $db->prepare('
-        SELECT COALESCE(SUM(budget_target - total_estimated_cost), 0) as saved
+        SELECT COALESCE(SUM(budget_target - total_estimated_cost), 0) as surplus
         FROM meal_plans
         WHERE user_id = ? AND budget_target IS NOT NULL AND total_estimated_cost < budget_target
     ');
     $stmt->execute([$userId]);
-    $totalSaved = $stmt->fetch()['saved'];
+    $budgetSurplus = $stmt->fetch()['surplus'];
 
     jsonResponse([
-        'recipes_saved'  => (int) $recipesSaved,
-        'posts_count'    => (int) $postsCount,
-        'likes_received' => (int) $likesReceived,
-        'friends_count'  => (int) $friendsCount,
-        'plans_count'    => (int) $plansCount,
-        'total_saved'    => round((float) $totalSaved, 2),
+        'recipes_saved'   => (int) $recipesSaved,
+        'posts_count'     => (int) $postsCount,
+        'likes_received'  => (int) $likesReceived,
+        'friends_count'   => (int) $friendsCount,
+        'plans_count'     => (int) $plansCount,
+        'total_saved'     => round((float) $budgetSurplus, 2),
+        'under_budget_by' => round((float) $budgetSurplus, 2),
     ]);
 }
 

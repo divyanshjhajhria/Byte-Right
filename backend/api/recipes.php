@@ -52,8 +52,8 @@ function searchRecipes(): void {
         jsonResponse(['error' => 'Please provide at least one ingredient'], 400);
     }
 
-    // Try Spoonacular API first
-    $apiResults = searchSpoonacular($ingredients, $diet, $maxTime);
+    // Try Spoonacular API first (pass maxCost so API results are also filtered)
+    $apiResults = searchSpoonacular($ingredients, $diet, $maxTime, $maxCost);
 
     if ($apiResults !== null && count($apiResults) > 0) {
         jsonResponse([
@@ -75,7 +75,7 @@ function searchRecipes(): void {
 /**
  * Search Spoonacular API for recipes by ingredients
  */
-function searchSpoonacular(string $ingredients, string $diet, int $maxTime): ?array {
+function searchSpoonacular(string $ingredients, string $diet, int $maxTime, float $maxCost = 0): ?array {
     $apiKey = SPOONACULAR_API_KEY;
     if ($apiKey === '') {
         return null; // No API key configured
@@ -135,6 +135,9 @@ function searchSpoonacular(string $ingredients, string $diet, int $maxTime): ?ar
                 continue;
             }
             if ($maxTime > 0 && $recipe['cook_time'] > $maxTime) {
+                continue;
+            }
+            if ($maxCost > 0 && $recipe['estimated_cost'] > $maxCost) {
                 continue;
             }
 

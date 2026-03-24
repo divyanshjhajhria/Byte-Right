@@ -115,20 +115,35 @@ function generateFromAPI(float $budget, array $dietaryPrefs): ?array {
     $plan = [];
     $dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
+    // Get nutrients/cost data if available
+    $nutrients = $data['week'] ?? [];
+
     foreach ($dayNames as $dayIndex => $dayName) {
         if (!isset($data['week'][$dayName])) continue;
-        $meals = $data['week'][$dayName]['meals'] ?? [];
+        $dayData = $data['week'][$dayName];
+        $meals = $dayData['meals'] ?? [];
+
+        // Spoonacular provides daily nutrient totals; estimate per-meal cost
+        // by dividing daily total evenly across meals
+        $dailyCostCents = 0;
+        foreach ($meals as $meal) {
+            // pricePerServing is in US cents from Spoonacular
+            $dailyCostCents += ($meal['pricePerServing'] ?? 0);
+        }
+        $mealCount = max(count($meals), 1);
 
         // First meal -> breakfast, second -> lunch, third -> dinner
         $mealTypes = ['breakfast', 'lunch', 'dinner'];
         foreach ($meals as $i => $meal) {
             $type = $mealTypes[$i] ?? 'snack';
+            // Convert from US cents to GBP (rough 1 USD = 0.80 GBP)
+            $costGbp = round(($meal['pricePerServing'] ?? ($dailyCostCents / $mealCount)) / 100 * 0.80, 2);
             $plan[] = [
                 'day_of_week'      => $dayIndex,
                 'meal_type'        => $type,
                 'custom_meal_name' => $meal['title'],
                 'spoonacular_id'   => $meal['id'],
-                'estimated_cost'   => 0,
+                'estimated_cost'   => $costGbp,
             ];
         }
     }
