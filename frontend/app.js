@@ -626,8 +626,12 @@ async function initSocialPage(user) {
     // Load feed from backend
     await loadFeed(postsList, user);
 
-    // Load sidebar stats
+    // Load sidebar stats (also triggers challenge progress update)
     await loadSocialStats();
+
+    // Load dynamic sidebar sections
+    loadActiveFriends();
+    loadTrendingSidebar();
 
     // Create post toggle
     createPostBtn.addEventListener('click', () => createPostCard.classList.toggle('hidden'));
@@ -907,7 +911,118 @@ async function loadSocialStats() {
         if (statValues[1]) statValues[1].textContent = stats.likes_received;
         if (statValues[2]) statValues[2].textContent = stats.recipes_saved;
         if (statValues[3]) statValues[3].textContent = `${stats.friends_count} friends`;
+
+        // Also update weekly challenge using posts_count
+        loadChallengeProgress(stats.posts_count || 0);
     } catch (e) { /* keep placeholder */ }
+}
+
+/**
+ * Load Active Cooks sidebar from friends list
+ */
+async function loadActiveFriends() {
+    const container = document.querySelector('.active-users-list');
+    if (!container) return;
+
+    try {
+        const friends = await apiCall('friends.php?action=list');
+        if (!Array.isArray(friends) || friends.length === 0) {
+            container.innerHTML = '<p class="empty-state-small">Add friends to see who is cooking!</p>';
+            return;
+        }
+
+        // Show up to 5 friends
+        const displayed = friends.slice(0, 5);
+        container.innerHTML = displayed.map((friend, i) => {
+            const avatars = ['🧑‍🍳', '👨‍🍳', '👩‍🍳', '🧑', '👨', '👩'];
+            const avatar = avatars[i % avatars.length];
+            const name = friend.name || friend.email || 'Friend';
+            const since = friend.since ? `Friends since ${new Date(friend.since).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}` : 'Friend';
+            return `
+                <div class="active-user">
+                    <div class="user-avatar-tiny">${avatar}</div>
+                    <div class="active-user-info">
+                        <div class="active-user-name">${name}</div>
+                        <div class="active-user-status">${since}</div>
+                    </div>
+                </div>`;
+        }).join('');
+    } catch (e) {
+        // Keep placeholder HTML on error
+    }
+}
+
+/**
+ * Load Trending Recipes sidebar from local DB random recipes
+ */
+async function loadTrendingSidebar() {
+    const container = document.querySelector('.trending-list');
+    if (!container) return;
+
+    try {
+        const recipes = await apiCall('recipes.php?action=random&count=3');
+        const list = Array.isArray(recipes) ? recipes : (recipes?.recipes || []);
+
+        if (list.length === 0) {
+            container.innerHTML = '<p class="empty-state-small">No recipes found. Set up the database first.</p>';
+            return;
+        }
+
+        const tagIcons = {
+            vegetarian: '🥗', vegan: '🌱', pasta: '🍝', chicken: '🍗',
+            pizza: '🍕', dessert: '🍰', soup: '🍲', breakfast: '🥞',
+            salad: '🥗', seafood: '🦐', rice: '🍚', curry: '🍛',
+            sandwich: '🥪', default: '🍽️'
+        };
+
+        container.innerHTML = list.map(recipe => {
+            const tags = recipe.tags || [];
+            let icon = tagIcons.default;
+            const titleLower = (recipe.title || '').toLowerCase();
+            for (const [key, emoji] of Object.entries(tagIcons)) {
+                if (key === 'default') continue;
+                if (tags.some(t => t.toLowerCase().includes(key)) || titleLower.includes(key)) {
+                    icon = emoji;
+                    break;
+                }
+            }
+            const time = recipe.cook_time ? `${recipe.cook_time} min` : '';
+            const difficulty = recipe.difficulty || '';
+            const meta = [difficulty, time].filter(Boolean).join(' · ') || 'Quick & easy';
+
+            return `
+                <div class="trending-item">
+                    <span class="trending-icon">${icon}</span>
+                    <div class="trending-info">
+                        <div class="trending-name">${recipe.title}</div>
+                        <div class="trending-meta">${meta}</div>
+                    </div>
+                </div>`;
+        }).join('');
+    } catch (e) {
+        // Keep placeholder HTML on error
+    }
+}
+
+/**
+ * Update Weekly Challenge progress from actual post count
+ */
+function loadChallengeProgress(postCount) {
+    const progressFill = document.querySelector('.challenge-card .progress-fill');
+    const progressText = document.querySelector('.challenge-card .progress-text');
+    if (!progressFill || !progressText) return;
+
+    const goal = 3;
+    const completed = Math.min(postCount, goal);
+    const pct = Math.round((completed / goal) * 100);
+
+    progressFill.style.width = `${pct}%`;
+    if (completed >= goal) {
+        progressText.textContent = `Challenge complete! ${postCount} posts shared`;
+        progressFill.style.background = 'var(--primary, #22c55e)';
+    } else {
+        progressText.textContent = `${completed} of ${goal} completed`;
+    }
 }
 
 // ============================================
