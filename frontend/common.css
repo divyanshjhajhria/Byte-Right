@@ -119,6 +119,26 @@ a { text-decoration: none; }
   transition: color var(--transition-fast);
 }
 
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.2s ease;
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
+
+.user-initial::after {
+  display: none;
+}
+
 .nav-links span:hover,
 .nav-link:hover { color: var(--text); }
 
