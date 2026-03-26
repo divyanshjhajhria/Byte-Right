@@ -245,10 +245,7 @@ function initLoginPage() {
 
 async function initDashboardPage(user) {
     const els = document.querySelectorAll('.username');
-    //console.log('found elements:', els.length);
-    els.forEach(el => {
-        el.textContent = user.name;
-    });
+    els.forEach(el => { el.textContent = user.name; });
 
     // Load stats
     try {
@@ -259,48 +256,184 @@ async function initDashboardPage(user) {
         if (statValues[2]) statValues[2].textContent = stats.friends_count;
     } catch (e) { /* stats are optional */ }
 
-    // Load trending recipes into the horizontal scroll strip
+    // ---- ROTATING HERO SECTION ----
     try {
-        const trending = await apiCall('recipes.php?action=random&count=8');
+        const heroData = await apiCall('recipes.php?action=trending&count=5');
+        const heroRecipes = Array.isArray(heroData) ? heroData : (heroData?.recipes || []);
+        if (heroRecipes.length > 0) {
+            let heroIndex = 0;
+            const heroIcons = ['viral_pic.jpg', 'viral_pic.jpg', 'viral_pic.jpg', 'viral_pic.jpg', 'viral_pic.jpg'];
+
+            function renderHero(idx) {
+                const r = heroRecipes[idx];
+                const totalTime = (r.prep_time || 0) + (r.cook_time || 0);
+                document.getElementById('heroTitle').textContent = r.title;
+                document.getElementById('heroDesc').textContent = r.description || '';
+                document.getElementById('heroMeta').innerHTML = `
+                    ${r.estimated_cost ? `<span class="viral-pill">£${parseFloat(r.estimated_cost).toFixed(2)} / serving</span>` : ''}
+                    ${totalTime ? `<span class="viral-pill">⏱ ${totalTime} min</span>` : ''}
+                    ${r.difficulty ? `<span class="viral-pill viral-pill--easy">${r.difficulty.charAt(0).toUpperCase() + r.difficulty.slice(1)}</span>` : ''}
+                    ${r.servings ? `<span class="viral-pill">👥 ${r.servings} servings</span>` : ''}
+                `;
+                // Indicators
+                document.getElementById('heroIndicators').innerHTML = heroRecipes.map((_, i) =>
+                    `<span class="hero-dot${i === idx ? ' active' : ''}" data-idx="${i}"></span>`
+                ).join('');
+                // Wire indicator clicks
+                document.querySelectorAll('.hero-dot').forEach(dot => {
+                    dot.addEventListener('click', () => {
+                        heroIndex = parseInt(dot.dataset.idx);
+                        renderHero(heroIndex);
+                    });
+                });
+                // Wire view + save buttons
+                document.getElementById('heroViewBtn').onclick = () => openRecipeModal(r.id);
+                const saveBtn = document.getElementById('heroSaveBtn');
+                saveBtn.textContent = r.is_saved ? 'Saved' : 'Save';
+                saveBtn.onclick = async () => {
+                    try {
+                        await apiCall(`recipes.php?action=save&recipe_id=${r.id}`, { method: 'POST' });
+                        saveBtn.textContent = 'Saved';
+                        showToast('Recipe saved!');
+                    } catch (err) {
+                        if (err.error?.includes('already saved')) {
+                            saveBtn.textContent = 'Saved';
+                        } else {
+                            showToast(err.error || 'Could not save', 'error');
+                        }
+                    }
+                };
+            }
+
+            renderHero(0);
+            // Auto-rotate every 6 seconds
+            setInterval(() => {
+                heroIndex = (heroIndex + 1) % heroRecipes.length;
+                renderHero(heroIndex);
+            }, 6000);
+        }
+    } catch (e) { /* keep loading placeholder */ }
+
+    // ---- TRENDING RECIPES SCROLL ----
+    try {
+        const trending = await apiCall('recipes.php?action=trending&count=8');
         const trendingScroll = document.querySelector('.trending-scroll');
-        const recipes = trending.recipes || trending; // handle both {recipes:[]} and []
+        const recipes = Array.isArray(trending) ? trending : (trending?.recipes || []);
         if (trendingScroll && recipes.length > 0) {
             trendingScroll.innerHTML = recipes.map((r, i) => {
                 const totalTime = (r.prep_time || 0) + (r.cook_time || 0);
                 const cost = r.estimated_cost ? `£${parseFloat(r.estimated_cost).toFixed(2)}` : '';
-                const rating = r.avg_rating ? `⭐ ${parseFloat(r.avg_rating).toFixed(1)}` : '';
-                const isNew = i === 0; // mark first card as NEW
                 const imgContent = r.image_url
                     ? `<img src="${escapeHtml(r.image_url)}" alt="${escapeHtml(r.title)}" style="width:100%;height:100%;object-fit:cover;display:block;">`
                     : getRecipeIcon(r);
                 return `
                     <div class="trending-card" onclick="openRecipeModal(${r.id})" title="${escapeHtml(r.title)}">
                         <div class="trending-card-img${r.image_url ? ' has-image' : ''}">${imgContent}</div>
-                        ${isNew ? '<div class="trending-badge">NEW</div>' : ''}
+                        ${i === 0 ? '<div class="trending-badge">HOT</div>' : ''}
                         <div class="trending-card-body">
                             <div class="trending-card-title">${escapeHtml(r.title)}</div>
                             ${cost ? `<div class="trending-card-price">${cost}</div>` : ''}
                             <div class="trending-card-meta">
                                 ${totalTime ? `<span>${totalTime} min</span>` : '<span></span>'}
-                                ${rating ? `<span>${rating}</span>` : ''}
                             </div>
                         </div>
                     </div>
                 `;
             }).join('');
         }
-    } catch (e) { /* keep placeholder cards on error */ }
+    } catch (e) { /* keep placeholder */ }
 
-    // Load current meal plan preview
+    // ---- FRIENDS ACTIVITY ----
+    try {
+        const feedData = await apiCall('social.php?action=feed&page=1');
+        const container = document.getElementById('friendsActivity');
+        if (container && feedData.posts?.length > 0) {
+            container.innerHTML = feedData.posts.slice(0, 4).map(p => {
+                const recipeTag = p.recipe_title
+                    ? `<span class="friend-post-tag">${escapeHtml(p.recipe_title)}</span>`
+                    : '';
+                const likeCount = p.likes_count > 0
+                    ? `<span class="friend-post-likes">${p.likes_count} like${p.likes_count !== 1 ? 's' : ''}</span>`
+                    : '';
+                return `
+                <div class="friend-post-item">
+                    <div class="friend-post-header">
+                        <div class="friend-post-avatar">${p.author_avatar || '👤'}</div>
+                        <div class="friend-post-meta">
+                            <div class="friend-post-name">${escapeHtml(p.author_name)}</div>
+                            <div class="friend-post-time">${timeAgo(p.created_at)}</div>
+                        </div>
+                    </div>
+                    <div class="friend-post-text">${escapeHtml(p.content)}</div>
+                    <div class="friend-post-footer">
+                        ${recipeTag}
+                        ${likeCount}
+                    </div>
+                </div>`;
+            }).join('');
+        } else if (container) {
+            container.innerHTML = '<p style="text-align:center;padding:16px;color:#8a7a6a;font-size:0.85rem;">No posts yet. Add friends to see their activity!</p>';
+        }
+    } catch (e) { }
+
+    // ---- BUDGET FRIENDLY RECIPES ----
+    try {
+        const budgetData = await apiCall('recipes.php?action=budget&maxCost=2.5');
+        const container = document.getElementById('budgetRecipes');
+        const budgetList = Array.isArray(budgetData) ? budgetData : (budgetData?.recipes || []);
+        if (container && budgetList.length > 0) {
+            container.innerHTML = budgetList.slice(0, 5).map(r => {
+                const icon = getRecipeIcon(r);
+                const totalTime = (parseInt(r.prep_time) || 0) + (parseInt(r.cook_time) || 0);
+                const timeStr = totalTime > 0 ? `${totalTime} min` : '';
+                const difficultyStr = r.difficulty || 'easy';
+                return `
+                <div class="budget-recipe-item" onclick="openRecipeModal(${r.id})">
+                    <div class="budget-recipe-icon">${icon}</div>
+                    <div class="budget-recipe-info">
+                        <div class="budget-recipe-name">${escapeHtml(r.title)}</div>
+                        <div class="budget-recipe-meta">${difficultyStr}${timeStr ? ' · ' + timeStr : ''}</div>
+                    </div>
+                    <div class="budget-recipe-cost">£${parseFloat(r.estimated_cost).toFixed(2)}</div>
+                </div>`;
+            }).join('');
+        } else if (container) {
+            container.innerHTML = '<p style="text-align:center;padding:16px;color:#8a7a6a;font-size:0.85rem;">No budget recipes found.</p>';
+        }
+    } catch (e) { }
+
+    // ---- SAVED RECIPES ----
+    try {
+        const savedData = await apiCall('recipes.php?action=saved');
+        const container = document.getElementById('savedRecipes');
+        const savedList = Array.isArray(savedData) ? savedData : (savedData?.recipes || []);
+        if (container && savedList.length > 0) {
+            container.innerHTML = savedList.slice(0, 4).map(r => `
+                <div class="saved-recipe-item" onclick="openRecipeModal(${r.id || r.recipe_id})">
+                    <span class="saved-recipe-icon">${getRecipeIcon(r)}</span>
+                    <div class="saved-recipe-info">
+                        <div class="saved-recipe-title">${escapeHtml(r.title)}</div>
+                        <div class="saved-recipe-meta">${r.difficulty || 'easy'} · ${(r.prep_time||0)+(r.cook_time||0)} min</div>
+                    </div>
+                </div>
+            `).join('');
+        } else if (container) {
+            container.innerHTML = '<p style="text-align:center;padding:16px;color:#8a7a6a;font-size:0.85rem;">No saved recipes yet. Browse recipes to save your favourites!</p>';
+        }
+    } catch (e) { }
+
+    // ---- WEEK PLAN PREVIEW ----
     try {
         const plan = await apiCall('mealplan.php?action=current');
-        const weekPreview = document.querySelector('.week-preview');
-        if (weekPreview && plan.items) {
+        const container = document.getElementById('weekPreview');
+        if (container && plan.items) {
             const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
             const today = new Date().getDay();
+            const todayIdx = today === 0 ? 6 : today - 1;
             const dinnerItems = plan.items.filter(i => i.meal_type === 'dinner');
-            weekPreview.innerHTML = dinnerItems.slice(0, 4).map((item, i) => {
-                const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : days[(today + i) % 7];
+            container.innerHTML = dinnerItems.slice(0, 4).map((item, i) => {
+                const dayIdx = (todayIdx + i) % 7;
+                const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : days[dayIdx];
                 return `
                     <div class="week-day">
                         <div class="week-day-label">${label}</div>
@@ -308,8 +441,13 @@ async function initDashboardPage(user) {
                     </div>
                 `;
             }).join('');
+        } else if (document.getElementById('weekPreview')) {
+            document.getElementById('weekPreview').innerHTML = '<p style="text-align:center;padding:16px;color:#8a7a6a;font-size:0.85rem;">No meal plan yet. Generate one from the Meal Plan page!</p>';
         }
-    } catch (e) { /* keep placeholder data */ }
+    } catch (e) {
+        const wp = document.getElementById('weekPreview');
+        if (wp) wp.innerHTML = '<p style="text-align:center;padding:16px;color:#8a7a6a;font-size:0.85rem;">No meal plan yet. Generate one from the Meal Plan page!</p>';
+    }
 
     // Logout link
     document.querySelectorAll('a[href="byteright_login.html"]').forEach(a => {
@@ -574,7 +712,7 @@ async function initPlannerPage(user) {
                 });
             } catch (e) { /* non-critical */ }
             renderMealPlan(grid, plan);
-            await loadShoppingList(aside, plan.id);
+            await loadShoppingList(aside, plan.id, true);
             showToast('Meal plan generated!');
         } catch (err) {
             showToast(err.error || 'Failed to generate plan', 'error');
@@ -623,16 +761,24 @@ function renderMealPlan(grid, plan) {
     grid.innerHTML = html;
 }
 
-async function loadShoppingList(aside, mealPlanId) {
+async function loadShoppingList(aside, mealPlanId, regenerate = false) {
     try {
-        const list = await apiCall(`shopping.php?action=generate&meal_plan_id=${mealPlanId}`, { method: 'POST' });
+        let list;
+        if (regenerate) {
+            list = await apiCall(`shopping.php?action=generate&meal_plan_id=${mealPlanId}`, { method: 'POST' });
+        } else {
+            list = await apiCall('shopping.php?action=current');
+        }
         renderShoppingList(aside, list);
     } catch (e) {
-        try {
-            const list = await apiCall('shopping.php?action=current');
-            renderShoppingList(aside, list);
-        } catch (e2) {
-            // Keep placeholder
+        if (!regenerate) {
+            // Fallback: try generating if no current list exists
+            try {
+                const list = await apiCall(`shopping.php?action=generate&meal_plan_id=${mealPlanId}`, { method: 'POST' });
+                renderShoppingList(aside, list);
+            } catch (e2) {
+                // Keep placeholder
+            }
         }
     } finally {
         aside.style.maxHeight = aside.closest('.layout')?.querySelector('section.panel')?.getBoundingClientRect().height + 'px';
@@ -642,6 +788,7 @@ async function loadShoppingList(aside, mealPlanId) {
 function renderShoppingList(aside, list) {
     if (!list || !list.items_grouped) return;
 
+    const listId = list.id;
     const categoryNames = {
         fresh_produce: 'Fresh produce',
         store_cupboard: 'Store cupboard',
@@ -649,7 +796,7 @@ function renderShoppingList(aside, list) {
         other: 'Other',
     };
 
-    let html = `
+    let headerHtml = `
         <div class="summary-title">Auto-generated shopping list</div>
         <div class="summary-block">
             ByteRight scans your week and combines overlapping ingredients into one simple list,
@@ -657,27 +804,91 @@ function renderShoppingList(aside, list) {
         </div>
     `;
 
+    let scrollHtml = '';
     for (const [category, items] of Object.entries(list.items_grouped)) {
         if (items.length === 0) continue;
-        html += `<div class="list"><h3>${categoryNames[category] || category}</h3><ul>`;
+        scrollHtml += `<div class="list"><h3>${categoryNames[category] || category}</h3><ul>`;
         items.forEach(item => {
             const qty = [item.quantity, item.unit].filter(Boolean).join(' ');
-            html += `<li>
-                <span>${escapeHtml(item.ingredient_name)}</span>
+            const checked = item.checked ? 'checked' : '';
+            const strikeStyle = item.checked ? 'text-decoration:line-through;opacity:0.5;' : '';
+            scrollHtml += `<li data-item-id="${item.id}" class="shop-item ${item.checked ? 'is-checked' : ''}">
+                <input type="checkbox" ${checked} class="shop-check" aria-label="Mark item complete">
+                <span class="shop-name">${escapeHtml(item.ingredient_name)}</span>
                 <span class="qty">${escapeHtml(qty)}</span>
+                <button class="shop-remove" type="button" title="Remove" aria-label="Remove item">&times;</button>
             </li>`;
         });
-        html += '</ul></div>';
+        scrollHtml += '</ul></div>';
     }
 
-    html += `
+    // Add item form
+    scrollHtml += `
+        <div style="display:flex;gap:8px;margin:12px 0;">
+            <input type="text" id="addItemInput" placeholder="Add custom item..." style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid #c9c4b0;font-size:0.85rem;">
+            <button id="addItemBtn" style="background:#7cb342;color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:0.85rem;font-weight:600;">Add</button>
+        </div>
+    `;
+
+    let footerHtml = `
         <div class="saving-card">
-            <strong>Estimated cost: £${list.calculated_total?.toFixed(2) || list.estimated_total}</strong>
+            <strong>Estimated cost: £${parseFloat(list.estimated_total || list.calculated_total || 0).toFixed(2)}</strong>
             <span>Based on average supermarket prices.</span>
         </div>
     `;
 
-    aside.innerHTML = html;
+    aside.innerHTML = headerHtml + '<div class="lists-scroll">' + scrollHtml + '</div>' + footerHtml;
+
+    // Wire up checkbox toggles
+    aside.querySelectorAll('.shop-check').forEach(cb => {
+        cb.addEventListener('change', async () => {
+            const li = cb.closest('li');
+            const itemId = li.dataset.itemId;
+            try {
+                await apiCall('shopping.php?action=check', { method: 'POST', body: { item_id: parseInt(itemId) } });
+                li.classList.toggle('is-checked', cb.checked);
+            } catch (err) {
+                cb.checked = !cb.checked;
+                showToast('Failed to update item', 'error');
+            }
+        });
+    });
+
+    // Wire up remove buttons
+    aside.querySelectorAll('.shop-remove').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const li = btn.closest('li');
+            const itemId = li.dataset.itemId;
+            try {
+                await apiCall(`shopping.php?action=remove_item&item_id=${itemId}`, { method: 'DELETE' });
+                li.remove();
+            } catch (err) {
+                showToast('Failed to remove item', 'error');
+            }
+        });
+    });
+
+    // Wire up add item
+    const addBtn = document.getElementById('addItemBtn');
+    const addInput = document.getElementById('addItemInput');
+    if (addBtn && addInput) {
+        const doAdd = async () => {
+            const name = addInput.value.trim();
+            if (!name) return;
+            try {
+                await apiCall('shopping.php?action=add_item', { method: 'POST', body: { shopping_list_id: listId, ingredient_name: name } });
+                addInput.value = '';
+                // Reload the shopping list to reflect the new item
+                const updatedList = await apiCall('shopping.php?action=current');
+                renderShoppingList(aside, updatedList);
+            } catch (err) {
+                showToast('Failed to add item', 'error');
+            }
+        };
+        addBtn.addEventListener('click', doAdd);
+        addInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doAdd(); });
+    }
+
     if (typeof matchSidebarHeight === 'function') matchSidebarHeight();
 }
 
@@ -847,10 +1058,13 @@ async function loadFeed(container, user) {
                     btn.classList.toggle('active');
                     btn.classList.toggle('liked');
                     const heart = btn.querySelector('.heart-icon');
-                    if (heart) heart.setAttribute('fill', btn.classList.contains('liked') ? 'currentColor' : 'none');            const statsEl = btn.querySelector('.ig-action-label');        
-                    const currentCount = parseInt(statsEl.textContent) || 0;
-                    const newCount = isLiked ? Math.max(0, currentCount - 1) : currentCount + 1;
-                    statsEl.textContent = `${newCount}`;
+                    if (heart) heart.setAttribute('fill', btn.classList.contains('liked') ? 'currentColor' : 'none');
+                    const statsEl = btn.querySelector('.ig-action-label');
+                    if (statsEl) {
+                        const currentCount = parseInt(statsEl.textContent) || 0;
+                        const newCount = isLiked ? Math.max(0, currentCount - 1) : currentCount + 1;
+                        statsEl.textContent = `${newCount}`;
+                    }
                 } catch (err) {
                     showToast(err.error || 'Error', 'error');
                 }
@@ -1038,14 +1252,14 @@ async function loadActiveFriends() {
 }
 
 /**
- * Load Trending Recipes sidebar from local DB random recipes
+ * Load Popular Recipes sidebar from curated trending recipes
  */
 async function loadTrendingSidebar() {
     const container = document.querySelector('.trending-list');
     if (!container) return;
 
     try {
-        const data = await apiCall('recipes.php?action=random&count=3');
+        const data = await apiCall('recipes.php?action=trending&count=3');
         const list = Array.isArray(data) ? data : (data?.recipes || []);
 
         if (list.length === 0) {
@@ -1060,7 +1274,7 @@ async function loadTrendingSidebar() {
             const meta = [difficulty, time].filter(Boolean).join(' · ') || 'Quick & easy';
 
             return `
-                <div class="trending-item">
+                <div class="trending-item" onclick="openRecipeModal(${recipe.id})" style="cursor:pointer;">
                     <span class="trending-icon">${icon}</span>
                     <div class="trending-info">
                         <div class="trending-name">${escapeHtml(recipe.title)}</div>
@@ -1109,14 +1323,13 @@ async function initProfilePage(user) {
         // Fill in personal info
         const nameInput = document.getElementById('nameInput');
         const emailInput = document.querySelector('.setting-item input[type="email"]');
-        const uniInput = document.querySelectorAll('.settings-section')[0]?.querySelectorAll('.setting-item input')[2];
-
+        const uniInput = document.getElementById('universityInput');
         if (nameInput) nameInput.value = profile.name;
         if (emailInput) emailInput.value = profile.email;
         if (uniInput) uniInput.value = profile.university || '';
 
         // Dietary prefs
-        const prefMap = { 1: 'vegCheck', 2: 'veganCheck', 3: 'gfCheck', 4: 'dfCheck', 5: 'halalCheck', 6: 'kosherCheck' };
+        const prefMap = { 1: 'vegCheck', 2: 'veganCheck', 3: 'gfCheck', 4: 'dfCheck', 5: 'halalCheck', 6: 'kosherCheck', 7: 'nutFreeCheck', 8: 'pescatarianCheck' };
         (profile.dietary_preferences || []).forEach(p => {
             const checkbox = document.getElementById(prefMap[p.id]);
             if (checkbox) checkbox.checked = true;
@@ -1244,12 +1457,47 @@ async function initProfilePage(user) {
 
     // ---- Wire up actions ----
 
+    // Name edit/save/cancel buttons
+    const editNameBtn = document.getElementById('editNameBtn');
+    const saveNameBtn = document.getElementById('saveNameBtn');
+    const cancelNameBtn = document.getElementById('cancelNameBtn');
+    const nameInput = document.getElementById('nameInput');
+    let originalName = nameInput?.value || '';
+
+    if (editNameBtn && nameInput) {
+        editNameBtn.addEventListener('click', () => {
+            originalName = nameInput.value;
+            nameInput.disabled = false;
+            nameInput.focus();
+            editNameBtn.classList.add('hidden');
+            saveNameBtn?.classList.remove('hidden');
+            cancelNameBtn?.classList.remove('hidden');
+        });
+    }
+    if (saveNameBtn && nameInput) {
+        saveNameBtn.addEventListener('click', () => {
+            nameInput.disabled = true;
+            editNameBtn?.classList.remove('hidden');
+            saveNameBtn.classList.add('hidden');
+            cancelNameBtn?.classList.add('hidden');
+        });
+    }
+    if (cancelNameBtn && nameInput) {
+        cancelNameBtn.addEventListener('click', () => {
+            nameInput.value = originalName;
+            nameInput.disabled = true;
+            editNameBtn?.classList.remove('hidden');
+            saveNameBtn?.classList.add('hidden');
+            cancelNameBtn.classList.add('hidden');
+        });
+    }
+
     // Save All button
     const saveAllBtn = document.getElementById('saveAllBtn');
-    saveAllBtn.addEventListener('click', async () => {
+    if (saveAllBtn) saveAllBtn.addEventListener('click', async () => {
         const timeReverseMap = { quick: 'under15', moderate: 'under30', long: 'under60', any: 'any' };
 
-        const prefIdMap = { vegCheck: 1, veganCheck: 2, gfCheck: 3, dfCheck: 4, halalCheck: 5, kosherCheck: 6 };
+        const prefIdMap = { vegCheck: 1, veganCheck: 2, gfCheck: 3, dfCheck: 4, halalCheck: 5, kosherCheck: 6, nutFreeCheck: 7, pescatarianCheck: 8 };
         const selectedPrefs = [];
         for (const [checkId, prefId] of Object.entries(prefIdMap)) {
             if (document.getElementById(checkId)?.checked) selectedPrefs.push(prefId);
@@ -1260,7 +1508,7 @@ async function initProfilePage(user) {
                 method: 'POST',
                 body: {
                     name: document.getElementById('nameInput').value.trim(),
-                    university: document.querySelectorAll('.settings-section')[0]?.querySelectorAll('.setting-item input')[2]?.value || '',
+                    university: document.getElementById('universityInput')?.value || '',
                     weekly_budget: parseFloat(document.getElementById('budgetInput').value) || 30,
                     cooking_time_pref: timeReverseMap[document.getElementById('cookingTimeSelect').value] || 'under30',
                     allergies: document.getElementById('allergiesInput').value,
@@ -1370,7 +1618,10 @@ async function initProfilePage(user) {
 // RECIPE DETAIL MODAL
 // ============================================
 
+let _modalLoading = false;
 function openRecipeModal(recipeId) {
+    if (_modalLoading) return;
+    _modalLoading = true;
     let overlay = document.getElementById('recipe-modal-overlay');
     if (!overlay) {
         overlay = document.createElement('div');
@@ -1464,7 +1715,7 @@ function openRecipeModal(recipeId) {
                 background:#e0e0e0;border:none;padding:10px 20px;border-radius:10px;cursor:pointer;margin-top:12px;
             ">Close</button>
         </div>`;
-    });
+    }).finally(() => { _modalLoading = false; });
 }
 
 // ============================================

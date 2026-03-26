@@ -11,10 +11,12 @@
  */
 
 require_once __DIR__ . '/../config/database.php';
+ob_start();
 startSession();
 
 $action = $_GET['action'] ?? '';
 
+try {
 switch ($action) {
     case 'generate':
         generateShoppingList();
@@ -37,6 +39,9 @@ switch ($action) {
     default:
         jsonResponse(['error' => 'Invalid action'], 400);
 }
+} catch (\Throwable $e) {
+    jsonResponse(['error' => 'Server error: ' . $e->getMessage()], 500);
+}
 
 /**
  * Generate a shopping list from a meal plan by aggregating all recipe ingredients
@@ -57,11 +62,12 @@ function generateShoppingList(): void {
         jsonResponse(['error' => 'Meal plan not found'], 404);
     }
 
-    // Get all recipe ingredients from the plan
+    // Get all recipe ingredients from the plan (LEFT JOIN to include custom/API meals)
     $stmt = $db->prepare('
-        SELECT r.ingredients, r.estimated_cost, r.servings
+        SELECT r.ingredients, r.estimated_cost AS recipe_cost, r.servings,
+               mpi.estimated_cost AS item_cost, mpi.custom_meal_name
         FROM meal_plan_items mpi
-        JOIN recipes r ON r.id = mpi.recipe_id
+        LEFT JOIN recipes r ON r.id = mpi.recipe_id
         WHERE mpi.meal_plan_id = ?
     ');
     $stmt->execute([$mealPlanId]);
@@ -72,8 +78,9 @@ function generateShoppingList(): void {
     $totalCost = 0;
 
     foreach ($meals as $meal) {
-        $ingredients = json_decode($meal['ingredients'], true) ?? [];
-        $totalCost += ($meal['estimated_cost'] ?? 0);
+        $totalCost += (float) ($meal['recipe_cost'] ?? $meal['item_cost'] ?? 0);
+        $ingredients = json_decode($meal['ingredients'] ?? 'null', true) ?? [];
+        if (empty($ingredients)) continue; // Skip custom/API meals with no recipe data
 
         foreach ($ingredients as $ing) {
             $parsed = parseIngredient($ing);
@@ -89,8 +96,9 @@ function generateShoppingList(): void {
                     // Same unit — add them together
                     $ingredientMap[$key]['quantity'] = (string)($existingQty + $newQty);
                 } elseif ($newQty !== '' && $newQty !== $existingQty) {
-                    // Different units — show both
-                    $ingredientMap[$key]['quantity'] = $existingQty . ' + ' . $newQty . ($newUnit ? ' ' . $parsed['unit'] : '');
+                    // Different units — show both with their units
+                    $ingredientMap[$key]['quantity'] = $existingQty . ($existingUnit ? ' ' . $existingUnit : '') . ' + ' . $newQty . ($newUnit ? ' ' . $newUnit : '');
+                    $ingredientMap[$key]['unit'] = ''; // Units are now inline in quantity string
                 }
             } else {
                 $ingredientMap[$key] = $parsed;

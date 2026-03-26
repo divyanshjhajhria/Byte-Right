@@ -10,28 +10,33 @@
  */
 
 require_once __DIR__ . '/../config/database.php';
+ob_start(); // Capture any stray PHP output so it doesn't break JSON responses
 startSession();
 
 $action = $_GET['action'] ?? '';
 
-switch ($action) {
-    case 'generate':
-        generateMealPlan();
-        break;
-    case 'get':
-        getMealPlan();
-        break;
-    case 'current':
-        getCurrentPlan();
-        break;
-    case 'update':
-        updateMealSlot();
-        break;
-    case 'delete':
-        deleteMealPlan();
-        break;
-    default:
-        jsonResponse(['error' => 'Invalid action'], 400);
+try {
+    switch ($action) {
+        case 'generate':
+            generateMealPlan();
+            break;
+        case 'get':
+            getMealPlan();
+            break;
+        case 'current':
+            getCurrentPlan();
+            break;
+        case 'update':
+            updateMealSlot();
+            break;
+        case 'delete':
+            deleteMealPlan();
+            break;
+        default:
+            jsonResponse(['error' => 'Invalid action'], 400);
+    }
+} catch (\Throwable $e) {
+    jsonResponse(['error' => 'Server error: ' . $e->getMessage()], 500);
 }
 
 /**
@@ -234,6 +239,11 @@ function generateFromLocal(PDO $db, float $budget, array $dietaryPrefs, string $
         $recipes = $stmt->fetchAll();
     }
 
+    // Guard: if the recipes table is completely empty, return an error
+    if (empty($recipes)) {
+        jsonResponse(['error' => 'No recipes available. Please add recipes to the database first.'], 400);
+    }
+
     // Separate by tags for variety
     $breakfastRecipes = array_values(array_filter($recipes, fn($r) => str_contains($r['tags'] ?? '', 'breakfast')));
     $lunchRecipes = array_values(array_filter($recipes, fn($r) => str_contains($r['tags'] ?? '', 'lunch')));
@@ -254,8 +264,8 @@ function generateFromLocal(PDO $db, float $budget, array $dietaryPrefs, string $
 
     $dailyBudget = $budget / 7;
 
-    // Include lunch when budget allows (daily > £6)
-    $includeLunch = $dailyBudget >= 6;
+    // Include lunch when budget allows (daily > £3 i.e. ~£21/week)
+    $includeLunch = $dailyBudget >= 3;
 
     // Budget allocation per meal type
     if ($includeLunch) {
@@ -294,6 +304,12 @@ function generateFromLocal(PDO $db, float $budget, array $dietaryPrefs, string $
     $dinnerPool = $shuffleTop($dinnerRecipes);
     $lunchPool = $includeLunch ? $shuffleTop($lunchRecipes) : [];
 
+    // Build a recipe cost lookup from all pools
+    $recipeCostMap = [];
+    foreach (array_merge($breakfastRecipes, $dinnerRecipes, $lunchRecipes) as $r) {
+        $recipeCostMap[$r['id']] = (float) ($r['estimated_cost'] ?? 0);
+    }
+
     $plan = [];
 
     for ($day = 0; $day < 7; $day++) {
@@ -316,6 +332,54 @@ function generateFromLocal(PDO $db, float $budget, array $dietaryPrefs, string $
             'meal_type'   => 'dinner',
             'recipe_id'   => $dinnerPool[$day % count($dinnerPool)]['id'],
         ];
+    }
+
+    // Budget enforcement: if total exceeds budget, swap expensive meals for cheaper ones
+    $totalCost = 0;
+    foreach ($plan as $item) {
+        $totalCost += $recipeCostMap[$item['recipe_id']] ?? 0;
+    }
+
+    if ($totalCost > $budget) {
+        // Sort each pool by cost ascending for cheap alternatives
+        $cheapBreakfast = $breakfastRecipes;
+        $cheapDinner = $dinnerRecipes;
+        $cheapLunch = $lunchRecipes;
+        usort($cheapBreakfast, fn($a, $b) => ($a['estimated_cost'] ?? 0) <=> ($b['estimated_cost'] ?? 0));
+        usort($cheapDinner, fn($a, $b) => ($a['estimated_cost'] ?? 0) <=> ($b['estimated_cost'] ?? 0));
+        usort($cheapLunch, fn($a, $b) => ($a['estimated_cost'] ?? 0) <=> ($b['estimated_cost'] ?? 0));
+
+        // Sort plan items by cost descending to replace most expensive first
+        $planWithCost = [];
+        foreach ($plan as $i => $item) {
+            $planWithCost[] = ['index' => $i, 'cost' => $recipeCostMap[$item['recipe_id']] ?? 0, 'type' => $item['meal_type']];
+        }
+        usort($planWithCost, fn($a, $b) => $b['cost'] <=> $a['cost']);
+
+        foreach ($planWithCost as $entry) {
+            if ($totalCost <= $budget) break;
+
+            $idx = $entry['index'];
+            $currentCost = $entry['cost'];
+            $type = $entry['type'];
+
+            $cheapPool = match($type) {
+                'breakfast' => $cheapBreakfast,
+                'lunch' => $cheapLunch,
+                default => $cheapDinner,
+            };
+
+            // Find cheapest recipe not already used on this day
+            foreach ($cheapPool as $cheap) {
+                $cheapCost = (float) ($cheap['estimated_cost'] ?? 0);
+                if ($cheapCost < $currentCost) {
+                    $totalCost = $totalCost - $currentCost + $cheapCost;
+                    $plan[$idx]['recipe_id'] = $cheap['id'];
+                    $recipeCostMap[$cheap['id']] = $cheapCost;
+                    break;
+                }
+            }
+        }
     }
 
     return $plan;

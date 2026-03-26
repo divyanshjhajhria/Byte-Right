@@ -49,30 +49,18 @@
       </div>
     </section>
 
-    <section class="viral-hero">
+    <section class="viral-hero" id="heroSection">
       <div class="viral-hero-image">
-        <img src="viral_pic.jpg" alt="Viral TikTok Pasta">
+        <img id="heroImage" src="viral_pic.jpg" alt="Featured Recipe">
       </div>
-
       <div class="viral-hero-content">
-        <div class="viral-label">Featured Recipe</div>
-        <h1 class="viral-title">Creamy Tomato Pasta</h1>
-        <p class="viral-desc">
-          A student favourite! Quick, creamy, and incredibly delicious.
-          The perfect 15-minute comfort dish for weeknights on a budget.
-        </p>
-
-        <div class="viral-meta">
-          <span class="viral-pill">💰 £4.50 / serving</span>
-          <span class="viral-pill">⏱ 15 min</span>
-          <span class="viral-pill">⭐ 4.9 (1.2k)</span>
-          <span class="viral-pill viral-pill--easy">Easy</span>
-        </div>
-
+        <div class="viral-label">Featured Recipe <span id="heroIndicators" style="margin-left:8px;"></span></div>
+        <h1 class="viral-title" id="heroTitle">Loading...</h1>
+        <p class="viral-desc" id="heroDesc">Discovering the best recipes for you...</p>
+        <div class="viral-meta" id="heroMeta"></div>
         <div class="viral-actions">
-          <button class="viral-btn-primary" onclick="window.location.href='byteright_recipes.html'">▶ View Recipe</button>
-          <button class="viral-btn-outline" onclick="addToMealPlan()">＋ Meal Plan</button>
-          <button class="viral-btn-outline" id="save-btn" onclick="toggleSave()">♡ Save</button>
+          <button class="viral-btn-primary" id="heroViewBtn">View Recipe</button>
+          <button class="viral-btn-outline" id="heroSaveBtn">Save</button>
         </div>
       </div>
     </section>
@@ -80,37 +68,45 @@
     <section class="quick-access-section">
       <div class="quick-access-left trending-section">
         <div class="trending-header">
-          <h2>Popular Recipes</h2>
+          <h2>Trending Recipes</h2>
         </div>
         <div class="trending-scroll">
-          <p style="text-align:center;padding:24px;color:#8a7a6a;width:100%;">Loading recipes from database...</p>
+          <p style="text-align:center;padding:24px;color:#8a7a6a;width:100%;">Loading recipes...</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="dashboard-grid">
+      <div class="dash-card">
+        <h2>What Friends Are Cooking</h2>
+        <div id="friendsActivity">
+          <p style="text-align:center;padding:16px;color:#8a7a6a;font-size:0.85rem;">Loading...</p>
+        </div>
+        <a href="byteright_social.html" class="btn-view-full" style="display:block;text-align:center;margin-top:12px;">View Social Feed</a>
+      </div>
+
+      <div class="dash-card">
+        <h2>Budget Friendly Picks</h2>
+        <div id="budgetRecipes">
+          <p style="text-align:center;padding:16px;color:#8a7a6a;font-size:0.85rem;">Loading...</p>
         </div>
       </div>
 
-<!--
-      <div class="quick-access-right">
-        <h2>This Week's Plan</h2>
-        <div class="week-preview">
-          <div class="week-day">
-            <div class="week-day-label">Today</div>
-            <div class="week-day-meal">Pasta Bake</div>
-          </div>
-          <div class="week-day">
-            <div class="week-day-label">Tomorrow</div>
-            <div class="week-day-meal">Veg Stir-fry</div>
-          </div>
-          <div class="week-day">
-            <div class="week-day-label">Friday</div>
-            <div class="week-day-meal">Homemade Pizza</div>
-          </div>
-          <div class="week-day">
-            <div class="week-day-label">Saturday</div>
-            <div class="week-day-meal">Burger Night</div>
-          </div>
+      <div class="dash-card">
+        <h2>Your Saved Recipes</h2>
+        <div id="savedRecipes">
+          <p style="text-align:center;padding:16px;color:#8a7a6a;font-size:0.85rem;">Loading...</p>
         </div>
-        <button class="btn-view-full" onclick="window.location.href='byteright_planner.html'">View Full Week →</button>
+        <a href="byteright_recipes.html" class="btn-view-full" style="display:block;text-align:center;margin-top:12px;">Browse All Recipes</a>
       </div>
-!-->
+
+      <div class="dash-card">
+        <h2>This Week's Plan</h2>
+        <div id="weekPreview">
+          <p style="text-align:center;padding:16px;color:#8a7a6a;font-size:0.85rem;">Loading...</p>
+        </div>
+        <a href="byteright_planner.html" class="btn-view-full" style="display:block;text-align:center;margin-top:12px;">View Full Week</a>
+      </div>
     </section>
 
   </main>
@@ -122,36 +118,6 @@
       <a href="byteright_login.html">Logout</a>
     </div>
   </footer>
-  <script>
-    function toggleSave() {
-      const btn = document.getElementById('save-btn');
-      const saved = btn.classList.toggle('saved');
-      btn.textContent = saved ? '♥ Saved' : '♡ Save';
-      btn.style.background = saved ? 'rgba(124,179,66,0.15)' : '';
-      btn.style.borderColor = saved ? '#7cb342' : '';
-      btn.style.color = saved ? '#689f38' : '';
-      btn.style.transform = 'scale(1.08)';
-      setTimeout(() => btn.style.transform = '', 200);
-    }
-
-    function addToMealPlan() {
-      const btn = event.currentTarget;
-      btn.textContent = '✓ Added to Meal Plan';
-      btn.style.background = 'rgba(124,179,66,0.15)';
-      btn.style.borderColor = '#7cb342';
-      btn.style.color = '#689f38';
-      btn.style.transform = 'scale(1.08)';
-      setTimeout(() => btn.style.transform = '', 200);
-
-      const toast = document.getElementById('toast');
-      toast.style.opacity = '1';
-      toast.style.transform = 'translateX(-50%) translateY(0)';
-      setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(-50%) translateY(2em)';
-      }, 2500);
-    }
-  </script>
   <script src="app.js"></script>
 </body>
 </html>

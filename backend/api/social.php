@@ -13,10 +13,12 @@
  */
 
 require_once __DIR__ . '/../config/database.php';
+ob_start();
 startSession();
 
 $action = $_GET['action'] ?? 'feed';
 
+try {
 switch ($action) {
     case 'feed':
         getFeed();
@@ -44,6 +46,9 @@ switch ($action) {
         break;
     default:
         jsonResponse(['error' => 'Invalid action'], 400);
+}
+} catch (\Throwable $e) {
+    jsonResponse(['error' => 'Server error: ' . $e->getMessage()], 500);
 }
 
 function getFeed(): void {

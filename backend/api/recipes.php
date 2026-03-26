@@ -11,10 +11,12 @@
  */
 
 require_once __DIR__ . '/../config/database.php';
+ob_start();
 startSession();
 
 $action = $_GET['action'] ?? 'search';
 
+try {
 switch ($action) {
     case 'search':
         searchRecipes();
@@ -34,8 +36,17 @@ switch ($action) {
     case 'random':
         getRandomRecipes();
         break;
+    case 'trending':
+        getTrendingRecipes();
+        break;
+    case 'budget':
+        getBudgetRecipes();
+        break;
     default:
         jsonResponse(['error' => 'Invalid action'], 400);
+}
+} catch (\Throwable $e) {
+    jsonResponse(['error' => 'Server error: ' . $e->getMessage()], 500);
 }
 
 /**
@@ -421,6 +432,53 @@ function getRandomRecipes(): void {
 
     // Use direct query with validated int to avoid LIMIT binding issues on some MySQL versions
     $stmt = $db->query('SELECT * FROM recipes ORDER BY RAND() LIMIT ' . $count);
+    $recipes = $stmt->fetchAll();
+
+    foreach ($recipes as &$r) {
+        $r['ingredients'] = json_decode($r['ingredients'], true);
+        $r['instructions'] = json_decode($r['instructions'], true);
+        $r['tags'] = json_decode($r['tags'], true);
+    }
+
+    jsonResponse($recipes);
+}
+
+function getTrendingRecipes(): void {
+    $count = min(max((int) ($_GET['count'] ?? 5), 1), 20);
+    $db = getDB();
+
+    // Return recipes with highest popularity scores, fall back to random if column doesn't exist
+    try {
+        $stmt = $db->query('SELECT * FROM recipes WHERE popularity_score > 0 ORDER BY popularity_score DESC LIMIT ' . $count);
+        $recipes = $stmt->fetchAll();
+    } catch (\Throwable $e) {
+        // popularity_score column might not exist yet, fall back to random
+        $stmt = $db->query('SELECT * FROM recipes ORDER BY RAND() LIMIT ' . $count);
+        $recipes = $stmt->fetchAll();
+    }
+
+    // If no recipes have popularity scores, fall back to random
+    if (empty($recipes)) {
+        $stmt = $db->query('SELECT * FROM recipes ORDER BY RAND() LIMIT ' . $count);
+        $recipes = $stmt->fetchAll();
+    }
+
+    foreach ($recipes as &$r) {
+        $r['ingredients'] = json_decode($r['ingredients'], true);
+        $r['instructions'] = json_decode($r['instructions'], true);
+        $r['tags'] = json_decode($r['tags'], true);
+    }
+
+    jsonResponse($recipes);
+}
+
+function getBudgetRecipes(): void {
+    $maxCost = (float) ($_GET['maxCost'] ?? 2.50);
+    $count = min(max((int) ($_GET['count'] ?? 10), 1), 20);
+    $db = getDB();
+
+    $stmt = $db->prepare('SELECT * FROM recipes WHERE estimated_cost > 0 AND estimated_cost <= ? ORDER BY estimated_cost ASC LIMIT ' . $count);
+    $stmt->execute([$maxCost]);
     $recipes = $stmt->fetchAll();
 
     foreach ($recipes as &$r) {
