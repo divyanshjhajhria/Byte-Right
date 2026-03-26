@@ -292,24 +292,62 @@ async function initDashboardPage(user) {
     } catch (e) { /* keep placeholder cards on error */ }
 
     // Load current meal plan preview
+// Load current meal plan preview into Today's / Tomorrow's Plan sections
     try {
         const plan = await apiCall('mealplan.php?action=current');
-        const weekPreview = document.querySelector('.week-preview');
-        if (weekPreview && plan.items) {
-            const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-            const today = new Date().getDay();
-            const dinnerItems = plan.items.filter(i => i.meal_type === 'dinner');
-            weekPreview.innerHTML = dinnerItems.slice(0, 4).map((item, i) => {
-                const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : days[(today + i) % 7];
-                return `
-                    <div class="week-day">
-                        <div class="week-day-label">${label}</div>
-                        <div class="week-day-meal">${escapeHtml(item.recipe_title || item.custom_meal_name || 'No meal')}</div>
-                    </div>
-                `;
-            }).join('');
+        const todayScroll    = document.getElementById('today-plan-scroll');
+        const tomorrowScroll = document.getElementById('tomorrow-plan-scroll');
+
+        if (plan.items && (todayScroll || tomorrowScroll)) {
+            const jsDow       = new Date().getDay();
+            const todayDow    = jsDow === 0 ? 6 : jsDow - 1; // convert Sun=0 → Mon-based index
+            const tomorrowDow = (todayDow + 1) % 7;
+            const mealOrder   = ['breakfast', 'lunch', 'dinner'];
+
+            function renderDayCards(dow, container) {
+                if (!container) return;
+                const dayItems = plan.items
+                    .filter(i => parseInt(i.day_of_week) === dow)
+                    .sort((a, b) => mealOrder.indexOf(a.meal_type) - mealOrder.indexOf(b.meal_type));
+
+                if (dayItems.length === 0) {
+                    container.innerHTML = `<div style="text-align:center;padding:24px;color:#8a7a6a;width:100%;">
+                        No meals planned. <a href="byteright_planner.html" style="color:var(--green-dark);font-weight:600;">Add one →</a>
+                    </div>`;
+                    return;
+                }
+
+                container.innerHTML = dayItems.map(item => {
+                    const title     = item.recipe_title || item.custom_meal_name || 'Meal';
+                    const cost      = item.estimated_cost ? `£${parseFloat(item.estimated_cost).toFixed(2)}` : '';
+                    const time      = item.cook_time ? `${item.cook_time} min` : '';
+                    const icon      = getRecipeIcon({ title, tags: [] });
+                    const mealLabel = item.meal_type ? item.meal_type.charAt(0).toUpperCase() + item.meal_type.slice(1) : '';
+                    const clickAttr = item.recipe_id ? `onclick="openRecipeModal(${item.recipe_id})" style="cursor:pointer;"` : '';
+                    return `
+                        <div class="trending-card" ${clickAttr}>
+                            <div class="trending-card-img">${icon}</div>
+                            ${mealLabel ? `<div class="trending-badge">${mealLabel}</div>` : ''}
+                            <div class="trending-card-body">
+                                <div class="trending-card-title">${escapeHtml(title)}</div>
+                                ${cost ? `<div class="trending-card-price">${cost}</div>` : ''}
+                                <div class="trending-card-meta"><span>${time}</span></div>
+                            </div>
+                        </div>`;
+                }).join('');
+            }
+
+            renderDayCards(todayDow,    todayScroll);
+            renderDayCards(tomorrowDow, tomorrowScroll);
         }
-    } catch (e) { /* keep placeholder data */ }
+    } catch (e) {
+        ['today-plan-scroll', 'tomorrow-plan-scroll'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = `<div style="text-align:center;padding:24px;color:#8a7a6a;width:100%;">
+                No meal plan yet. <a href="byteright_planner.html" style="color:var(--green-dark);font-weight:600;">Create one →</a>
+            </div>`;
+        });
+    }
 
     // Logout link
     document.querySelectorAll('a[href="byteright_login.html"]').forEach(a => {
