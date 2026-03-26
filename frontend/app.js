@@ -290,7 +290,46 @@ async function initDashboardPage(user) {
             }).join('');
         }
     } catch (e) { /* keep placeholder cards on error */ }
-
+    
+// Load user's saved recipes into the saved recipes strip
+    try {
+        const saved = await apiCall('recipes.php?action=saved');
+        const savedScroll = document.getElementById('saved-recipes-scroll');
+        const savedSection = document.getElementById('saved-recipes-section');
+        const recipes = saved.recipes || saved;
+        if (savedScroll) {
+            if (recipes.length === 0) {
+                savedScroll.innerHTML = '<p style="text-align:center;padding:24px;color:#8a7a6a;width:100%;">No saved recipes yet — save ones you like!</p>';
+            } else {
+                savedScroll.innerHTML = recipes.map(r => {
+                    const totalTime = (r.prep_time || 0) + (r.cook_time || 0);
+                    const cost = r.estimated_cost ? `£${parseFloat(r.estimated_cost).toFixed(2)}` : '';
+                    const rating = r.avg_rating ? `⭐ ${parseFloat(r.avg_rating).toFixed(1)}` : '';
+                    const imgContent = r.image_url
+                        ? `<img src="${escapeHtml(r.image_url)}" alt="${escapeHtml(r.title)}" style="width:100%;height:100%;object-fit:cover;display:block;">`
+                        : getRecipeIcon(r);
+                    return `
+                        <div class="trending-card" onclick="openRecipeModal(${r.id})" title="${escapeHtml(r.title)}">
+                            <div class="trending-card-img${r.image_url ? ' has-image' : ''}">${imgContent}</div>
+                            <div class="trending-badge" style="background:#7cb342;">♥ Saved</div>
+                            <div class="trending-card-body">
+                                <div class="trending-card-title">${escapeHtml(r.title)}</div>
+                                ${cost ? `<div class="trending-card-price">${cost}</div>` : ''}
+                                <div class="trending-card-meta">
+                                    ${totalTime ? `<span>${totalTime} min</span>` : '<span></span>'}
+                                    ${rating ? `<span>${rating}</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+    } catch (e) {
+        const savedScroll = document.getElementById('saved-recipes-scroll');
+        if (savedScroll) savedScroll.innerHTML = '<p style="text-align:center;padding:24px;color:#8a7a6a;width:100%;">Could not load saved recipes.</p>';
+    }
+ 
     // Load current meal plan preview
 // Load current meal plan preview into Today's / Tomorrow's Plan sections
     try {
