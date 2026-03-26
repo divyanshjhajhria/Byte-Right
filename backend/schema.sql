@@ -99,6 +99,7 @@ CREATE TABLE meal_plan_items (
     meal_type ENUM('breakfast', 'lunch', 'dinner', 'snack') NOT NULL,
     recipe_id INT DEFAULT NULL,
     custom_meal_name VARCHAR(200) DEFAULT NULL,
+    estimated_cost DECIMAL(6,2) DEFAULT NULL,
     FOREIGN KEY (meal_plan_id) REFERENCES meal_plans(id) ON DELETE CASCADE,
     FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE SET NULL
 );
@@ -198,7 +199,7 @@ CREATE TABLE fridge_items (
 CREATE TABLE activity_log (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    action_type ENUM('recipe_saved', 'recipe_cooked', 'post_created', 'plan_created', 'friend_added') NOT NULL,
+    action_type ENUM('recipe_saved', 'recipe_cooked', 'post_created', 'plan_created', 'friend_added', 'account_created') NOT NULL,
     reference_id INT DEFAULT NULL,
     description VARCHAR(255) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

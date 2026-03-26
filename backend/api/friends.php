@@ -92,7 +92,7 @@ function sendRequest(): void {
         jsonResponse(['error' => 'No user found with that email'], 404);
     }
 
-    if ($target['id'] === $userId) {
+    if ((int)$target['id'] === (int)$userId) {
         jsonResponse(['error' => 'You cannot friend yourself'], 400);
     }
 

@@ -24,12 +24,60 @@ async function apiCall(endpoint, options = {}) {
     }
 
     const res = await fetch(url, { ...defaults, ...options });
-    const data = await res.json();
+
+    // Parse response safely - handle non-JSON responses (PHP errors, blank responses)
+    let data;
+    const text = await res.text();
+    try {
+        data = JSON.parse(text);
+    } catch (parseError) {
+        throw { status: res.status, error: 'Server returned an invalid response', raw: text.substring(0, 200) };
+    }
 
     if (!res.ok) {
         throw { status: res.status, ...data };
     }
     return data;
+}
+
+/**
+ * Custom confirmation dialog to replace native confirm()
+ */
+function showConfirmDialog(message, onConfirm) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position:fixed;top:0;left:0;width:100%;height:100%;
+        background:rgba(0,0,0,0.4);z-index:99999;display:flex;
+        align-items:center;justify-content:center;padding:20px;
+    `;
+    overlay.innerHTML = `
+        <div style="
+            background:#fff7e6;border-radius:16px;max-width:380px;width:100%;
+            padding:28px;box-shadow:0 12px 40px rgba(0,0,0,0.2);
+            font-family:Inter,sans-serif;text-align:center;
+        ">
+            <p style="font-size:1rem;color:#3e2723;margin:0 0 20px 0;line-height:1.5;">${message}</p>
+            <div style="display:flex;gap:10px;justify-content:center;">
+                <button class="confirm-cancel-btn" style="
+                    padding:10px 22px;border-radius:10px;border:1px solid #c1aa7b;
+                    background:transparent;color:#5d4a3a;cursor:pointer;
+                    font-size:0.9rem;font-weight:600;font-family:inherit;
+                ">Cancel</button>
+                <button class="confirm-ok-btn" style="
+                    padding:10px 22px;border-radius:10px;border:none;
+                    background:#e53935;color:#fff;cursor:pointer;
+                    font-size:0.9rem;font-weight:600;font-family:inherit;
+                ">Delete</button>
+            </div>
+        </div>
+    `;
+    overlay.querySelector('.confirm-cancel-btn').addEventListener('click', () => overlay.remove());
+    overlay.querySelector('.confirm-ok-btn').addEventListener('click', () => {
+        overlay.remove();
+        onConfirm();
+    });
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
 }
 
 function showToast(message, type = 'success') {
@@ -49,6 +97,39 @@ function showToast(message, type = 'success') {
     toast.style.background = type === 'success' ? '#4caf50' : type === 'error' ? '#e53935' : '#ff9800';
     toast.style.opacity = '1';
     setTimeout(() => { toast.style.opacity = '0'; }, 3500);
+}
+
+/**
+ * Return a deterministic icon for a recipe based on its title and tags
+ */
+function getRecipeIcon(recipe) {
+    const titleLower = (recipe.title || '').toLowerCase();
+    const tags = (recipe.tags || []).map(t => (typeof t === 'string' ? t : '').toLowerCase());
+    const all = titleLower + ' ' + tags.join(' ');
+
+    const map = [
+        [['pasta', 'spaghetti', 'noodle', 'ramen', 'penne', 'macaroni'], '🍝'],
+        [['pizza', 'flatbread'], '🍕'],
+        [['curry', 'tikka', 'masala', 'korma', 'biryani'], '🍛'],
+        [['soup', 'broth', 'chowder', 'stew'], '🍲'],
+        [['salad', 'slaw', 'bowl'], '🥗'],
+        [['burger', 'sandwich', 'wrap', 'toast', 'bagel'], '🥪'],
+        [['pancake', 'waffle', 'oats', 'cereal', 'breakfast', 'porridge'], '🥞'],
+        [['chicken', 'turkey', 'poultry'], '🍗'],
+        [['egg', 'omelette', 'scramble', 'frittata', 'shakshuka'], '🍳'],
+        [['rice', 'fried rice', 'risotto', 'pilaf'], '🍚'],
+        [['taco', 'burrito', 'enchilada', 'quesadilla', 'nacho'], '🌮'],
+        [['cake', 'brownie', 'dessert', 'cookie', 'pudding', 'muffin'], '🍰'],
+        [['fish', 'seafood', 'prawn', 'shrimp', 'salmon', 'tuna'], '🐟'],
+        [['stir', 'fry', 'wok'], '🥘'],
+    ];
+
+    for (const [keywords, icon] of map) {
+        for (const kw of keywords) {
+            if (all.includes(kw)) return icon;
+        }
+    }
+    return '🍽️';
 }
 
 function timeAgo(dateStr) {
@@ -74,9 +155,9 @@ async function checkAuth() {
             window.location.href = 'byteright_login.html';
             return null;
         }
-        // Replace {username} placeholders on the page
-        document.querySelectorAll('*').forEach(el => {
-            if (el.children.length === 0 && el.textContent.includes('{username}')) {
+        // Replace {username} placeholders on the page (targeted selectors, not full DOM scan)
+        document.querySelectorAll('.username, [data-username]').forEach(el => {
+            if (el.textContent.includes('{username}')) {
                 el.textContent = el.textContent.replace(/\{username\}/g, data.user.name);
             }
             if (el.value && el.value.includes('{username}')) {
@@ -174,7 +255,7 @@ async function initDashboardPage(user) {
         const stats = await apiCall('profile.php?action=stats');
         const statValues = document.querySelectorAll('.stat-mini-value');
         if (statValues[0]) statValues[0].textContent = stats.recipes_saved;
-        if (statValues[1]) statValues[1].textContent = `£${stats.total_saved}`;
+        if (statValues[1]) statValues[1].textContent = `£${stats.under_budget_by ?? stats.total_saved}`;
         if (statValues[2]) statValues[2].textContent = stats.friends_count;
     } catch (e) { /* stats are optional */ }
 
@@ -184,7 +265,6 @@ async function initDashboardPage(user) {
         const trendingScroll = document.querySelector('.trending-scroll');
         const recipes = trending.recipes || trending; // handle both {recipes:[]} and []
         if (trendingScroll && recipes.length > 0) {
-            const icons = ['🍝', '🌮', '🍛', '🍕', '🥗', '🍜', '🥘', '🍳', '🫕', '🥙'];
             trendingScroll.innerHTML = recipes.map((r, i) => {
                 const totalTime = (r.prep_time || 0) + (r.cook_time || 0);
                 const cost = r.estimated_cost ? `£${parseFloat(r.estimated_cost).toFixed(2)}` : '';
@@ -192,7 +272,7 @@ async function initDashboardPage(user) {
                 const isNew = i === 0; // mark first card as NEW
                 const imgContent = r.image_url
                     ? `<img src="${escapeHtml(r.image_url)}" alt="${escapeHtml(r.title)}" style="width:100%;height:100%;object-fit:cover;display:block;">`
-                    : icons[i % icons.length];
+                    : getRecipeIcon(r);
                 return `
                     <div class="trending-card" onclick="openRecipeModal(${r.id})" title="${escapeHtml(r.title)}">
                         <div class="trending-card-img${r.image_url ? ' has-image' : ''}">${imgContent}</div>
@@ -379,8 +459,7 @@ async function initRecipesPage(user) {
             } else {
                 recipeList.innerHTML = data.recipes.map(r => {
                     const totalTime = (r.prep_time || 0) + (r.cook_time || 0);
-                    const icons = ['🍳', '🥘', '🍝', '🍲', '🥗', '🍛'];
-                    const icon = icons[Math.floor(Math.random() * icons.length)];
+                    const icon = getRecipeIcon(r);
                     return `
                         <article class="recipe-card" data-id="${r.id || ''}" style="cursor:${r.id ? 'pointer' : 'default'};">
                             <div class="recipe-icon">${icon}</div>
@@ -618,8 +697,12 @@ async function initSocialPage(user) {
     // Load feed from backend
     await loadFeed(postsList, user);
 
-    // Load sidebar stats
+    // Load sidebar stats (also triggers challenge progress update)
     await loadSocialStats();
+
+    // Load dynamic sidebar sections
+    loadActiveFriends();
+    loadTrendingSidebar();
 
     // Create post toggle
     createPostBtn.addEventListener('click', () => createPostCard.classList.toggle('hidden'));
@@ -637,7 +720,7 @@ async function initSocialPage(user) {
     fileInput.addEventListener('change', () => {
         if (fileInput.files[0]) {
             selectedFile = fileInput.files[0];
-            uploadPhotoBtn.textContent = `📷 ${selectedFile.name}`;
+            uploadPhotoBtn.textContent = '1 image selected';
         }
     });
 
@@ -725,14 +808,14 @@ async function loadFeed(container, user) {
                     </div>
                     <div class="post-actions-bar">
                         <button class="action-btn ig-action-btn ${liked ? 'liked' : ''}" data-action="like" data-post-id="${post.id}">
-                            <svg class="ig-icon heart-icon" width="20" height="20" viewBox="0 0 24 24" fill="${liked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <svg class="ig-icon heart-icon" viewBox="0 0 24 24" fill="${liked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                             </svg>
                             <span class="ig-action-label">${post.likes_count || 0}</span>
                         </button>
                         <button class="action-btn ig-action-btn" data-action="comment" data-post-id="${post.id}">
-                            <svg class="ig-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            <svg class="ig-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
                             </svg>
                             <span class="ig-action-label">${post.comments_count || 0}</span>
                         </button>
@@ -829,10 +912,15 @@ async function loadFeed(container, user) {
                     });
                     input.value = '';
 
-                    // Update comment count in stats
+                    // Update comment count in stats text
                     const statsEl = btn.closest('.post-card').querySelector('.comments-count');
                     const currentCount = parseInt(statsEl.textContent) || 0;
-                    statsEl.textContent = `${currentCount + 1} comment${currentCount + 1 !== 1 ? 's' : ''}`;
+                    const newCount = currentCount + 1;
+                    statsEl.textContent = `${newCount} comment${newCount !== 1 ? 's' : ''}`;
+
+                    // Also update the comment button icon count to stay in sync
+                    const commentBtn = btn.closest('.post-card').querySelector('[data-action="comment"] .ig-action-label');
+                    if (commentBtn) commentBtn.textContent = newCount;
 
                     // Reload comments
                     const commentsList = section.querySelector('.comments-list');
@@ -868,16 +956,18 @@ async function loadFeed(container, user) {
 
         // Delete buttons
         container.querySelectorAll('.btn-delete-post').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                if (!confirm('Delete this post?')) return;
+            btn.addEventListener('click', () => {
                 const postId = btn.dataset.postId;
-                try {
-                    await apiCall(`social.php?action=delete&post_id=${postId}`, { method: 'DELETE' });
-                    btn.closest('.post-card').remove();
-                    showToast('Post deleted');
-                } catch (err) {
-                    showToast(err.error || 'Error', 'error');
-                }
+                const card = btn.closest('.post-card');
+                showConfirmDialog('Delete this post? This cannot be undone.', async () => {
+                    try {
+                        await apiCall(`social.php?action=delete&post_id=${postId}`, { method: 'DELETE' });
+                        card.remove();
+                        showToast('Post deleted');
+                    } catch (err) {
+                        showToast(err.error || 'Error', 'error');
+                    }
+                });
             });
         });
 
@@ -894,7 +984,114 @@ async function loadSocialStats() {
         if (statValues[1]) statValues[1].textContent = stats.likes_received;
         if (statValues[2]) statValues[2].textContent = stats.recipes_saved;
         if (statValues[3]) statValues[3].textContent = `${stats.friends_count} friends`;
+
+        // Also update weekly challenge using posts_count
+        loadChallengeProgress(stats.posts_count || 0);
     } catch (e) { /* keep placeholder */ }
+}
+
+/**
+ * Load Active Cooks sidebar from friends list
+ */
+async function loadActiveFriends() {
+    const container = document.querySelector('.active-users-list');
+    if (!container) return;
+
+    try {
+        const data = await apiCall('friends.php?action=list');
+        // API returns {friends: [], count: N}
+        const friendsList = data.friends || data;
+        const list = Array.isArray(friendsList) ? friendsList : [];
+
+        if (list.length === 0) {
+            container.innerHTML = '<p style="text-align:center;padding:12px;color:#8a7a6a;font-size:0.85rem;">Add friends to see them here.</p>';
+            return;
+        }
+
+        // Show up to 5 friends, prioritise those with recent posts
+        const sorted = [...list].sort((a, b) => (b.recent_posts || 0) - (a.recent_posts || 0));
+        const displayed = sorted.slice(0, 5);
+        container.innerHTML = displayed.map((friend, i) => {
+            const avatars = ['🧑‍🍳', '👨‍🍳', '👩‍🍳', '🧑', '👨', '👩'];
+            const avatar = friend.avatar_path || avatars[i % avatars.length];
+            const name = friend.name || 'Friend';
+            let status = '';
+            if (friend.recent_posts > 0) {
+                status = `${friend.recent_posts} post${friend.recent_posts > 1 ? 's' : ''} this week`;
+            } else if (friend.friends_since) {
+                status = `Friends since ${new Date(friend.friends_since).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}`;
+            } else {
+                status = 'Friend';
+            }
+            return `
+                <div class="active-user">
+                    <div class="user-avatar-tiny">${avatar}</div>
+                    <div class="active-user-info">
+                        <div class="active-user-name">${escapeHtml(name)}</div>
+                        <div class="active-user-status">${status}</div>
+                    </div>
+                </div>`;
+        }).join('');
+    } catch (e) {
+        container.innerHTML = '<p style="text-align:center;padding:12px;color:#8a7a6a;font-size:0.85rem;">Add friends to see them here.</p>';
+    }
+}
+
+/**
+ * Load Trending Recipes sidebar from local DB random recipes
+ */
+async function loadTrendingSidebar() {
+    const container = document.querySelector('.trending-list');
+    if (!container) return;
+
+    try {
+        const data = await apiCall('recipes.php?action=random&count=3');
+        const list = Array.isArray(data) ? data : (data?.recipes || []);
+
+        if (list.length === 0) {
+            container.innerHTML = '<p style="text-align:center;padding:12px;color:#8a7a6a;font-size:0.85rem;">No recipes available.</p>';
+            return;
+        }
+
+        container.innerHTML = list.map(recipe => {
+            const icon = getRecipeIcon(recipe);
+            const time = recipe.cook_time ? `${recipe.cook_time} min` : '';
+            const difficulty = recipe.difficulty || '';
+            const meta = [difficulty, time].filter(Boolean).join(' · ') || 'Quick & easy';
+
+            return `
+                <div class="trending-item">
+                    <span class="trending-icon">${icon}</span>
+                    <div class="trending-info">
+                        <div class="trending-name">${escapeHtml(recipe.title)}</div>
+                        <div class="trending-meta">${meta}</div>
+                    </div>
+                </div>`;
+        }).join('');
+    } catch (e) {
+        container.innerHTML = '<p style="text-align:center;padding:12px;color:#8a7a6a;font-size:0.85rem;">Could not load recipes.</p>';
+    }
+}
+
+/**
+ * Update Weekly Challenge progress from actual post count
+ */
+function loadChallengeProgress(postCount) {
+    const progressFill = document.querySelector('.challenge-card .progress-fill');
+    const progressText = document.querySelector('.challenge-card .progress-text');
+    if (!progressFill || !progressText) return;
+
+    const goal = 3;
+    const completed = Math.min(postCount, goal);
+    const pct = Math.round((completed / goal) * 100);
+
+    progressFill.style.width = `${pct}%`;
+    if (completed >= goal) {
+        progressText.textContent = `Challenge complete! ${postCount} posts shared`;
+        progressFill.style.background = 'var(--primary, #22c55e)';
+    } else {
+        progressText.textContent = `${completed} of ${goal} completed`;
+    }
 }
 
 // ============================================
@@ -967,7 +1164,7 @@ async function initProfilePage(user) {
 
         // Activity tab stats
         const statCards = document.querySelectorAll('.stat-card-value');
-        if (statCards[0]) statCards[0].textContent = `£${stats.total_saved}`;
+        if (statCards[0]) statCards[0].textContent = `£${stats.under_budget_by ?? stats.total_saved}`;
         if (statCards[1]) statCards[1].textContent = stats.recipes_saved;
         if (statCards[2]) statCards[2].textContent = stats.posts_count;
     } catch (e) { /* keep defaults */ }
@@ -979,7 +1176,7 @@ async function initProfilePage(user) {
         if (activityList && activity.length > 0) {
             const iconMap = {
                 recipe_saved: '💾', recipe_cooked: '🍳', post_created: '📸',
-                plan_created: '📅', friend_added: '👥'
+                plan_created: '📅', friend_added: '👥', account_created: '🎉'
             };
             activityList.innerHTML = activity.map(a => `
                 <div class="activity-item">

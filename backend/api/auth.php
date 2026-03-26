@@ -71,7 +71,7 @@ function handleRegister(): void {
     $_SESSION['user_id'] = $userId;
 
     // Log activity
-    $stmt = $db->prepare('INSERT INTO activity_log (user_id, action_type, description) VALUES (?, "friend_added", "Account created")');
+    $stmt = $db->prepare('INSERT INTO activity_log (user_id, action_type, description) VALUES (?, "account_created", "Account created")');
     $stmt->execute([$userId]);
 
     jsonResponse([

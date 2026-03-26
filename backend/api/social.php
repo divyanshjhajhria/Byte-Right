@@ -173,14 +173,23 @@ function createPost(): void {
 function handleImageUpload(array $file): string|false {
     $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
+    // Check client-supplied MIME type first (quick reject)
     if (!in_array($file['type'], $allowed)) {
         return false;
     }
+
+    // Verify actual file content MIME type server-side (prevents spoofing)
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $realMime = $finfo->file($file['tmp_name']);
+    if (!in_array($realMime, $allowed)) {
+        return false;
+    }
+
     if ($file['size'] > MAX_UPLOAD_SIZE) {
         return false;
     }
 
-    $ext = match($file['type']) {
+    $ext = match($realMime) {
         'image/jpeg' => 'jpg',
         'image/png'  => 'png',
         'image/gif'  => 'gif',
@@ -329,9 +338,12 @@ function deletePost(): void {
         jsonResponse(['error' => 'Post not found or not authorized'], 404);
     }
 
-    // Delete image file if exists
-    if ($post['image_path'] && file_exists(UPLOAD_DIR . '../' . $post['image_path'])) {
-        unlink(UPLOAD_DIR . '../' . $post['image_path']);
+    // Delete image file if exists (image_path is relative to backend/, e.g. "uploads/posts/file.jpg")
+    if ($post['image_path']) {
+        $imagePath = __DIR__ . '/../' . $post['image_path'];
+        if (file_exists($imagePath)) {
+            unlink($imagePath);
+        }
     }
 
     $db->prepare('DELETE FROM posts WHERE id = ?')->execute([$postId]);

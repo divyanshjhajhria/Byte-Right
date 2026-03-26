@@ -98,39 +98,48 @@ function generateShoppingList(): void {
         }
     }
 
-    // Delete existing shopping list for this plan
-    $stmt = $db->prepare('SELECT id FROM shopping_lists WHERE meal_plan_id = ? AND user_id = ?');
-    $stmt->execute([$mealPlanId, $userId]);
-    $existing = $stmt->fetch();
-    if ($existing) {
-        $db->prepare('DELETE FROM shopping_lists WHERE id = ?')->execute([$existing['id']]);
-    }
+    // Wrap delete + create in a transaction for atomicity
+    $db->beginTransaction();
+    try {
+        // Delete existing shopping list for this plan
+        $stmt = $db->prepare('SELECT id FROM shopping_lists WHERE meal_plan_id = ? AND user_id = ?');
+        $stmt->execute([$mealPlanId, $userId]);
+        $existing = $stmt->fetch();
+        if ($existing) {
+            $db->prepare('DELETE FROM shopping_lists WHERE id = ?')->execute([$existing['id']]);
+        }
 
-    // Create new shopping list
-    $stmt = $db->prepare('
-        INSERT INTO shopping_lists (user_id, meal_plan_id, name, estimated_total)
-        VALUES (?, ?, ?, ?)
-    ');
-    $stmt->execute([$userId, $mealPlanId, 'Week Shopping List', $totalCost]);
-    $listId = (int) $db->lastInsertId();
+        // Create new shopping list
+        $stmt = $db->prepare('
+            INSERT INTO shopping_lists (user_id, meal_plan_id, name, estimated_total)
+            VALUES (?, ?, ?, ?)
+        ');
+        $stmt->execute([$userId, $mealPlanId, 'Week Shopping List', $totalCost]);
+        $listId = (int) $db->lastInsertId();
 
-    // Insert items
-    $insertStmt = $db->prepare('
-        INSERT INTO shopping_list_items (shopping_list_id, ingredient_name, quantity, unit, category, estimated_price)
-        VALUES (?, ?, ?, ?, ?, ?)
-    ');
+        // Insert items
+        $insertStmt = $db->prepare('
+            INSERT INTO shopping_list_items (shopping_list_id, ingredient_name, quantity, unit, category, estimated_price)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ');
 
-    foreach ($ingredientMap as $item) {
-        $category = categorizeIngredient($item['name']);
-        $price = estimatePrice($item['name']);
-        $insertStmt->execute([
-            $listId,
-            $item['name'],
-            $item['quantity'],
-            $item['unit'],
-            $category,
-            $price,
-        ]);
+        foreach ($ingredientMap as $item) {
+            $category = categorizeIngredient($item['name']);
+            $price = estimatePrice($item['name']);
+            $insertStmt->execute([
+                $listId,
+                $item['name'],
+                $item['quantity'],
+                $item['unit'],
+                $category,
+                $price,
+            ]);
+        }
+
+        $db->commit();
+    } catch (\Exception $e) {
+        $db->rollBack();
+        jsonResponse(['error' => 'Failed to generate shopping list'], 500);
     }
 
     // Return the full list
