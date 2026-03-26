@@ -32,6 +32,7 @@ $migrations = [
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )",
     "ALTER TABLE meal_plan_items ADD COLUMN estimated_cost DECIMAL(6,2) DEFAULT NULL",
+    "ALTER TABLE recipes ADD COLUMN popularity_score INT DEFAULT 0",
 ];
 
 foreach ($migrations as $sql) {
@@ -366,7 +367,8 @@ if ($existingPlan->fetch()) {
     echo "Meal plan already exists for first demo user, skipping\n";
 } else {
     // Create a weekly meal plan
-    $db->prepare('INSERT INTO meal_plans (user_id, budget, status) VALUES (?, 35.00, "active")')->execute([$firstUserId]);
+    $weekStart = date('Y-m-d', strtotime('monday this week'));
+    $db->prepare('INSERT INTO meal_plans (user_id, week_start, budget_target, total_estimated_cost) VALUES (?, ?, 35.00, 0)')->execute([$firstUserId, $weekStart]);
     $planId = (int) $db->lastInsertId();
 
     // Pick recipes for breakfast and dinner across the week
@@ -395,6 +397,161 @@ if ($existingPlan->fetch()) {
 
     echo "Created demo meal plan (ID $planId) with " . min(7, count($breakfastRecipes)) . " breakfasts and " . min(7, count($dinnerRecipes)) . " dinners (total £" . number_format($total, 2) . ")\n";
 }
+
+// ============================================
+// 9. ADD EXTRA DIETARY PREFERENCES
+// ============================================
+
+$extraPrefs = ['Nut-Free', 'Pescatarian', 'Low-Carb', 'High-Protein'];
+foreach ($extraPrefs as $pref) {
+    try {
+        $db->prepare('INSERT INTO dietary_preferences (name) VALUES (?)')->execute([$pref]);
+        echo "Added dietary preference: $pref\n";
+    } catch (PDOException $e) {
+        // Already exists
+    }
+}
+
+// Map all dietary preferences for frontend use
+$allPrefs = $db->query('SELECT id, name FROM dietary_preferences ORDER BY id')->fetchAll();
+echo "All dietary preferences: " . implode(', ', array_column($allPrefs, 'name')) . "\n";
+
+// ============================================
+// 10. ADD HALAL, KOSHER, PESCATARIAN, NUT-FREE RECIPES
+// ============================================
+
+$newRecipes = [
+    [
+        'title' => 'Chicken Shawarma Bowl',
+        'description' => 'Aromatic spiced chicken with rice, hummus and fresh salad - halal friendly.',
+        'ingredients' => '["2 chicken breasts","1 tsp cumin","1 tsp paprika","1 tsp turmeric","1 tsp coriander","2 tbsp olive oil","200g rice","1 cucumber","2 tomatoes","100g hummus","flatbread"]',
+        'instructions' => '["Mix cumin, paprika, turmeric, coriander and oil.","Slice chicken and coat in spice mix.","Cook rice.","Pan fry chicken 5 mins each side.","Dice cucumber and tomatoes.","Assemble bowl: rice, chicken, salad, hummus.","Serve with warm flatbread."]',
+        'prep_time' => 10, 'cook_time' => 15, 'servings' => 2, 'cost' => 3.50,
+        'difficulty' => 'easy', 'tags' => '["dinner","lunch","halal","healthy","high_protein"]',
+        'popularity' => 82,
+    ],
+    [
+        'title' => 'Lamb Kofta with Rice',
+        'description' => 'Spiced lamb kofta served with fluffy rice and yoghurt sauce.',
+        'ingredients' => '["300g minced lamb","1 onion grated","2 cloves garlic","1 tsp cumin","1 tsp coriander","salt","pepper","200g rice","150g yoghurt","fresh mint","lemon"]',
+        'instructions' => '["Mix lamb, grated onion, garlic, cumin, coriander, salt and pepper.","Shape into small oval kofta.","Grill or pan fry 4 mins each side.","Cook rice.","Mix yoghurt with mint and lemon juice.","Serve kofta on rice with yoghurt sauce."]',
+        'prep_time' => 10, 'cook_time' => 15, 'servings' => 2, 'cost' => 4.50,
+        'difficulty' => 'easy', 'tags' => '["dinner","halal","kosher","high_protein"]',
+        'popularity' => 77,
+    ],
+    [
+        'title' => 'Salmon Teriyaki',
+        'description' => 'Glazed salmon fillets with sweet teriyaki sauce and steamed rice.',
+        'ingredients' => '["2 salmon fillets","3 tbsp soy sauce","1 tbsp honey","1 tsp ginger","1 clove garlic","1 tbsp sesame oil","200g rice","steamed broccoli","sesame seeds"]',
+        'instructions' => '["Mix soy sauce, honey, ginger, garlic and sesame oil.","Marinate salmon 10 mins.","Cook rice.","Pan fry salmon 4 mins each side, basting with sauce.","Steam broccoli.","Serve salmon on rice with broccoli, drizzle remaining sauce.","Top with sesame seeds."]',
+        'prep_time' => 15, 'cook_time' => 12, 'servings' => 2, 'cost' => 5.50,
+        'difficulty' => 'easy', 'tags' => '["dinner","pescatarian","healthy","nut_free","gluten_free"]',
+        'popularity' => 84,
+    ],
+    [
+        'title' => 'Prawn Stir-Fry',
+        'description' => 'Quick and healthy prawn stir-fry with vegetables and noodles.',
+        'ingredients' => '["200g king prawns","1 pepper","100g mange tout","2 spring onions","2 tbsp soy sauce","1 tbsp sweet chilli sauce","1 clove garlic","200g egg noodles","1 tbsp oil"]',
+        'instructions' => '["Cook noodles per packet instructions.","Heat oil in wok over high heat.","Add prawns, cook 2 mins.","Add sliced pepper, mange tout and garlic.","Stir fry 3 mins.","Add soy and sweet chilli sauce.","Toss in drained noodles.","Top with sliced spring onions."]',
+        'prep_time' => 5, 'cook_time' => 10, 'servings' => 2, 'cost' => 4.00,
+        'difficulty' => 'easy', 'tags' => '["dinner","pescatarian","quick","nut_free"]',
+        'popularity' => 70,
+    ],
+    [
+        'title' => 'Matzo Ball Soup',
+        'description' => 'Comforting chicken soup with light fluffy matzo balls.',
+        'ingredients' => '["4 eggs","100g matzo meal","2 tbsp oil","1 tsp salt","1L chicken stock","2 carrots","2 celery sticks","1 onion","fresh dill"]',
+        'instructions' => '["Beat eggs, mix in matzo meal, oil and salt.","Chill mixture 30 mins.","Dice carrots, celery and onion.","Simmer vegetables in chicken stock 15 mins.","Roll matzo mixture into small balls.","Drop into simmering soup.","Cook 20 mins until matzo balls float and are cooked through.","Garnish with fresh dill."]',
+        'prep_time' => 15, 'cook_time' => 35, 'servings' => 4, 'cost' => 3.00,
+        'difficulty' => 'medium', 'tags' => '["dinner","lunch","kosher","comfort","nut_free"]',
+        'popularity' => 65,
+    ],
+    [
+        'title' => 'Falafel Wrap',
+        'description' => 'Crispy baked falafel in warm flatbread with tahini sauce.',
+        'ingredients' => '["1 can chickpeas","1 onion","2 cloves garlic","1 tsp cumin","1 tsp coriander","2 tbsp flour","salt","pepper","flatbread","lettuce","tomato","tahini","lemon"]',
+        'instructions' => '["Blend chickpeas, onion, garlic, cumin, coriander and flour.","Shape into small patties.","Bake at 200C for 20 mins, flip halfway.","Warm flatbread.","Mix tahini with lemon juice and water.","Assemble wrap: flatbread, lettuce, tomato, falafel.","Drizzle tahini sauce."]',
+        'prep_time' => 10, 'cook_time' => 20, 'servings' => 2, 'cost' => 2.00,
+        'difficulty' => 'easy', 'tags' => '["lunch","dinner","halal","kosher","vegan","vegetarian","budget","nut_free"]',
+        'popularity' => 79,
+    ],
+    [
+        'title' => 'Tuna Nicoise Salad',
+        'description' => 'Classic French salad with tuna, eggs, olives and green beans.',
+        'ingredients' => '["1 can tuna","2 eggs","100g green beans","10 cherry tomatoes","handful of olives","1 little gem lettuce","2 tbsp olive oil","1 tbsp red wine vinegar","salt","pepper"]',
+        'instructions' => '["Boil eggs 8 mins, cool and halve.","Blanch green beans 3 mins.","Halve cherry tomatoes.","Arrange lettuce on plates.","Top with tuna, eggs, beans, tomatoes, olives.","Whisk olive oil, vinegar, salt and pepper.","Drizzle dressing over salad."]',
+        'prep_time' => 10, 'cook_time' => 10, 'servings' => 2, 'cost' => 3.50,
+        'difficulty' => 'easy', 'tags' => '["lunch","pescatarian","healthy","gluten_free","nut_free"]',
+        'popularity' => 68,
+    ],
+    [
+        'title' => 'Chickpea and Spinach Stew',
+        'description' => 'Hearty one-pot stew packed with protein and greens.',
+        'ingredients' => '["1 can chickpeas","200g spinach","1 can chopped tomatoes","1 onion","2 cloves garlic","1 tsp cumin","1 tsp paprika","1 tbsp olive oil","salt","pepper","bread to serve"]',
+        'instructions' => '["Fry onion and garlic in olive oil.","Add cumin and paprika, stir 1 min.","Add tomatoes and drained chickpeas.","Simmer 15 mins.","Stir in spinach until wilted.","Season with salt and pepper.","Serve with crusty bread."]',
+        'prep_time' => 5, 'cook_time' => 20, 'servings' => 2, 'cost' => 1.80,
+        'difficulty' => 'easy', 'tags' => '["dinner","lunch","halal","kosher","vegan","vegetarian","budget","nut_free","healthy"]',
+        'popularity' => 72,
+    ],
+];
+
+$stmtRecipeCheck = $db->prepare('SELECT id FROM recipes WHERE title = ?');
+$stmtRecipeInsert = $db->prepare('
+    INSERT INTO recipes (title, description, ingredients, instructions, prep_time, cook_time, servings, estimated_cost, difficulty, tags, source, popularity_score)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "local", ?)
+');
+
+$recipeCount = 0;
+foreach ($newRecipes as $r) {
+    $stmtRecipeCheck->execute([$r['title']]);
+    if ($stmtRecipeCheck->fetch()) continue;
+
+    $stmtRecipeInsert->execute([
+        $r['title'], $r['description'], $r['ingredients'], $r['instructions'],
+        $r['prep_time'], $r['cook_time'], $r['servings'], $r['cost'],
+        $r['difficulty'], $r['tags'], $r['popularity']
+    ]);
+    $recipeCount++;
+}
+echo "Added $recipeCount new recipes (halal, kosher, pescatarian, nut-free)\n";
+
+// ============================================
+// 11. BEFRIEND CURRENT USER WITH DEMO USERS
+// ============================================
+
+// Find any non-demo users (the real logged-in user) and befriend them with some demo users
+$realUsers = $db->query('SELECT id FROM users WHERE email NOT LIKE "%manchester.ac.uk" LIMIT 5')->fetchAll(PDO::FETCH_COLUMN);
+$demoIds = array_values($userIds);
+
+foreach ($realUsers as $realId) {
+    $friendsAdded = 0;
+    foreach (array_slice($demoIds, 0, 5) as $demoId) {
+        if ($realId == $demoId) continue;
+        try {
+            $stmtFriendCheck->execute([$realId, $demoId, $demoId, $realId]);
+            if (!$stmtFriendCheck->fetch()) {
+                $stmtFriendInsert->execute([$demoId, $realId, rand(1, 30)]);
+                $friendsAdded++;
+            }
+        } catch (PDOException $e) { /* skip duplicates */ }
+    }
+    if ($friendsAdded > 0) echo "Added $friendsAdded demo friends for user ID $realId\n";
+}
+
+// ============================================
+// 12. SET POPULARITY SCORES ON EXISTING RECIPES
+// ============================================
+
+$popularityMap = [
+    'Chicken Stir-Fry' => 95, 'Spaghetti Bolognese' => 92, 'Vegetable Curry' => 90,
+    'Overnight Oats' => 88, 'Chicken Fajitas' => 86, 'Pasta Carbonara' => 85,
+    'Avocado Toast' => 83, 'Shakshuka' => 80, 'Thai Green Curry' => 78, 'Mushroom Risotto' => 75,
+];
+$stmtPop = $db->prepare('UPDATE recipes SET popularity_score = ? WHERE title = ? AND popularity_score = 0');
+foreach ($popularityMap as $title => $score) {
+    $stmtPop->execute([$score, $title]);
+}
+echo "Set popularity scores on featured recipes\n";
 
 echo "\n=== Demo Data Seeding Complete ===\n";
 echo "Demo user password: demo12345\n";

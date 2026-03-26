@@ -81,6 +81,8 @@ function requireLogin(): int {
  * Send JSON response
  */
 function jsonResponse(mixed $data, int $code = 200): void {
+    // Discard any stray PHP output (warnings, notices) that would break JSON
+    while (ob_get_level() > 0) ob_end_clean();
     http_response_code($code);
     header('Content-Type: application/json');
     echo json_encode($data);

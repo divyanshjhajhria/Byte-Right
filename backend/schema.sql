@@ -61,6 +61,7 @@ CREATE TABLE recipes (
     tags JSON DEFAULT NULL,           -- e.g. ["vegetarian","quick","budget"]
     source ENUM('api', 'local', 'user') DEFAULT 'local',
     spoonacular_id INT DEFAULT NULL,
+    popularity_score INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -392,3 +393,18 @@ INSERT INTO recipes (title, description, ingredients, instructions, prep_time, c
  '["1 can chopped tomatoes","4 eggs","1 onion","1 pepper","2 cloves garlic","1 tsp cumin","1 tsp paprika","pinch of chilli","fresh coriander","bread to serve"]',
  '["Fry onion, pepper and garlic until soft.","Add spices, stir 1 minute.","Pour in tomatoes, simmer 10 mins until thick.","Make 4 wells, crack in eggs.","Cover, cook 5 mins until whites set.","Garnish with coriander, serve with bread."]',
  5, 20, 2, 2.50, 'easy', '["breakfast","dinner","budget","healthy"]', 'local');
+
+-- Add popularity_score column if it doesn't exist (safe for existing databases)
+ALTER TABLE recipes ADD COLUMN IF NOT EXISTS popularity_score INT DEFAULT 0;
+
+-- Set popularity scores for featured/popular recipes
+UPDATE recipes SET popularity_score = 95 WHERE title = 'Chicken Stir-Fry';
+UPDATE recipes SET popularity_score = 92 WHERE title = 'Spaghetti Bolognese';
+UPDATE recipes SET popularity_score = 90 WHERE title = 'Vegetable Curry';
+UPDATE recipes SET popularity_score = 88 WHERE title = 'Overnight Oats';
+UPDATE recipes SET popularity_score = 86 WHERE title = 'Chicken Fajitas';
+UPDATE recipes SET popularity_score = 85 WHERE title = 'Pasta Carbonara';
+UPDATE recipes SET popularity_score = 83 WHERE title = 'Avocado Toast';
+UPDATE recipes SET popularity_score = 80 WHERE title = 'Shakshuka';
+UPDATE recipes SET popularity_score = 78 WHERE title = 'Thai Green Curry';
+UPDATE recipes SET popularity_score = 75 WHERE title = 'Mushroom Risotto';

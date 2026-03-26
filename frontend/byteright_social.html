@@ -107,25 +107,5 @@
   </main>
 
   <script src="app.js"></script>
-
-  <script>
-    const createPostBtn = document.querySelector('.btn-create-post');
-    const createPostCard = document.getElementById('createPostCard');
-    const cancelPostBtn = document.querySelector('.btn-cancel-post');
-
-    createPostBtn.addEventListener('click', () => {
-      createPostCard.classList.toggle('hidden');
-    });
-
-    cancelPostBtn.addEventListener('click', () => {
-      createPostCard.classList.add('hidden');
-    });
-
-    document.querySelectorAll('.action-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        btn.classList.toggle('active');
-      });
-    });
-  </script>
 </body>
 </html>
