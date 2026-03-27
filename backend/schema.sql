@@ -395,7 +395,9 @@ INSERT INTO recipes (title, description, ingredients, instructions, prep_time, c
  5, 20, 2, 2.50, 'easy', '["breakfast","dinner","budget","healthy"]', 'local');
 
 -- Add popularity_score column if it doesn't exist (safe for existing databases)
-ALTER TABLE recipes ADD COLUMN IF NOT EXISTS popularity_score INT DEFAULT 0;
+-- Note: "IF NOT EXISTS" on ADD COLUMN is MariaDB-only; standard MySQL doesn't support it.
+-- setup.php's error handler already suppresses "Duplicate column" errors on re-runs.
+ALTER TABLE recipes ADD COLUMN popularity_score INT DEFAULT 0;
 
 -- Set popularity scores for featured/popular recipes
 UPDATE recipes SET popularity_score = 95 WHERE title = 'Chicken Stir-Fry';

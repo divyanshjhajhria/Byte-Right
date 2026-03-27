@@ -28,10 +28,15 @@ try {
 
     $sql = file_get_contents($schemaPath);
 
-    // Split by semicolons (but not those inside strings)
+    // Split by semicolons followed by newline, then strip SQL comment lines
     $statements = array_filter(
-        array_map('trim', preg_split('/;\s*\n/', $sql)),
-        fn($s) => $s !== '' && !str_starts_with($s, '--')
+        array_map(function ($s) {
+            // Remove full-line SQL comments (-- ...) before evaluating the statement
+            $lines = explode("\n", $s);
+            $lines = array_filter($lines, fn($line) => !str_starts_with(trim($line), '--'));
+            return trim(implode("\n", $lines));
+        }, preg_split('/;\s*\n/', $sql)),
+        fn($s) => $s !== ''
     );
 
     $count = 0;
