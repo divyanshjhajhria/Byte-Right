@@ -12,6 +12,15 @@ require_once __DIR__ . '/config/database.php';
 echo "=== ByteRight Demo Data Seeder ===\n\n";
 
 $db = getDB();
+// ============================================
+// DEDUPLICATION: Remove duplicate recipes, keeping the lowest id
+// ============================================
+$db->exec("
+    DELETE r1 FROM recipes r1
+    INNER JOIN recipes r2
+    WHERE r1.id > r2.id AND r1.title = r2.title
+");
+echo "Deduplicated recipes table\n";
 
 // ============================================
 // 0a. MIGRATIONS: Add new columns if they don't exist

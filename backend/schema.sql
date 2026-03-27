@@ -49,6 +49,7 @@ CREATE TABLE user_dietary_preferences (
 CREATE TABLE recipes (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(200) NOT NULL,
+    UNIQUE KEY unique_recipe_title (title),
     description TEXT,
     ingredients JSON NOT NULL,
     instructions JSON NOT NULL,
@@ -210,7 +211,7 @@ CREATE TABLE activity_log (
 -- ============================================
 -- SEED DATA: Fallback Recipe Library (30 diverse recipes)
 -- ============================================
-INSERT INTO recipes (title, description, ingredients, instructions, prep_time, cook_time, servings, estimated_cost, difficulty, tags, source) VALUES
+INSERT IGNORE INTO recipes (title, description, ingredients, instructions, prep_time, cook_time, servings, estimated_cost, difficulty, tags, source) VALUES
 
 -- BREAKFAST
 ('Classic Scrambled Eggs on Toast', 'Creamy scrambled eggs on buttered toast - a student staple.',
