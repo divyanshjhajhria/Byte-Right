@@ -401,7 +401,7 @@ async function initDashboardPage(user) {
         const container = document.getElementById('budgetRecipes');
         const budgetList = Array.isArray(budgetData) ? budgetData : (budgetData?.recipes || []);
         if (container && budgetList.length > 0) {
-            container.innerHTML = budgetList.slice(0, 5).map(r => {
+            container.innerHTML = budgetList.slice(0, 4).map(r => {
                 const totalTime = (parseInt(r.prep_time) || 0) + (parseInt(r.cook_time) || 0);
                 const timeStr = totalTime > 0 ? `${totalTime} min` : '';
                 const difficultyStr = r.difficulty || 'easy';
@@ -429,7 +429,7 @@ async function initDashboardPage(user) {
         const container = document.getElementById('savedRecipes');
         const savedList = Array.isArray(savedData) ? savedData : (savedData?.recipes || []);
         if (container && savedList.length > 0) {
-            container.innerHTML = savedList.slice(0, 4).map(r => {
+            container.innerHTML = savedList.map(r => {
                 const savedIconContent = r.image_url
                     ? `<img src="${escapeHtml(r.image_url)}" alt="${escapeHtml(r.title)}">`
                     : getRecipeIcon(r);
@@ -456,17 +456,9 @@ async function initDashboardPage(user) {
             const today = new Date().getDay();
             const todayIdx = today === 0 ? 6 : today - 1;
             const dinnerItems = plan.items.filter(i => i.meal_type === 'dinner');
-
-            const todayAndForward = [];
-            for (let i = 0; i < 4; i++) {
+            container.innerHTML = dinnerItems.slice(0, 4).map((item, i) => {
                 const dayIdx = (todayIdx + i) % 7;
-                const item = dinnerItems.find(d => d.day_of_week == dayIdx);
-                if (item) todayAndForward.push({ item, offset: i });
-            }
-
-            container.innerHTML = todayAndForward.map(({ item, offset }) => {
-                const dayIdx = (todayIdx + offset) % 7;
-                const label = offset === 0 ? 'Today' : offset === 1 ? 'Tomorrow' : days[dayIdx];
+                const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : days[dayIdx];
                 return `
                     <div class="week-day">
                         <div class="week-day-label">${label}</div>

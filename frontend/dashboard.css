@@ -623,6 +623,20 @@ body {
   font-weight: 600;
 }
 
+#friendsActivity {
+  max-height: 16rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(106, 170, 42, 0.25) transparent;
+}
+
+#friendsActivity::-webkit-scrollbar { width: 3px; }
+#friendsActivity::-webkit-scrollbar-track { background: transparent; }
+#friendsActivity::-webkit-scrollbar-thumb {
+  background: rgba(106, 170, 42, 0.3);
+  border-radius: 999px;
+}
+
 .budget-recipe-item {
   display: flex;
   align-items: center;
@@ -760,6 +774,20 @@ body {
 .saved-recipe-meta {
   font-size: 0.73rem;
   color: var(--text-muted);
+}
+
+#savedRecipes {
+  max-height: 11rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(106, 170, 42, 0.25) transparent;
+}
+
+#savedRecipes::-webkit-scrollbar { width: 3px; }
+#savedRecipes::-webkit-scrollbar-track { background: transparent; }
+#savedRecipes::-webkit-scrollbar-thumb {
+  background: rgba(106, 170, 42, 0.3);
+  border-radius: 999px;
 }
 
 /* Hero indicators */
