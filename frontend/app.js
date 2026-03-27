@@ -456,9 +456,17 @@ async function initDashboardPage(user) {
             const today = new Date().getDay();
             const todayIdx = today === 0 ? 6 : today - 1;
             const dinnerItems = plan.items.filter(i => i.meal_type === 'dinner');
-            container.innerHTML = dinnerItems.slice(0, 4).map((item, i) => {
+
+            const todayAndForward = [];
+            for (let i = 0; i < 4; i++) {
                 const dayIdx = (todayIdx + i) % 7;
-                const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : days[dayIdx];
+                const item = dinnerItems.find(d => d.day_of_week == dayIdx);
+                if (item) todayAndForward.push({ item, offset: i });
+            }
+
+            container.innerHTML = todayAndForward.map(({ item, offset }) => {
+                const dayIdx = (todayIdx + offset) % 7;
+                const label = offset === 0 ? 'Today' : offset === 1 ? 'Tomorrow' : days[dayIdx];
                 return `
                     <div class="week-day">
                         <div class="week-day-label">${label}</div>
