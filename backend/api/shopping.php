@@ -84,7 +84,10 @@ function generateShoppingList(): void {
 
         foreach ($ingredients as $ing) {
             $parsed = parseIngredient($ing);
-            $key = strtolower($parsed['name']);
+            $cleanName = normalizeIngredientName($parsed['name']);
+            $key = singularize($cleanName);
+            // Store the clean display name (without "to serve", etc.)
+            $parsed['name'] = $cleanName ?: $parsed['name'];
 
             if (isset($ingredientMap[$key])) {
                 $existingQty  = $ingredientMap[$key]['quantity'];
@@ -92,13 +95,26 @@ function generateShoppingList(): void {
                 $existingUnit = strtolower($ingredientMap[$key]['unit']);
                 $newUnit      = strtolower($parsed['unit']);
 
-                if (is_numeric($existingQty) && is_numeric($newQty) && $existingUnit === $newUnit) {
+                if ($newQty === '') {
+                    // New ingredient has no quantity — keep existing as-is
+                } elseif ($existingQty === '') {
+                    // Existing has no quantity but new one does — use new
+                    $ingredientMap[$key]['quantity'] = $newQty;
+                    $ingredientMap[$key]['unit'] = $parsed['unit'];
+                } elseif (is_numeric($existingQty) && is_numeric($newQty) && $existingUnit === $newUnit) {
                     // Same unit — add them together
                     $ingredientMap[$key]['quantity'] = (string)($existingQty + $newQty);
-                } elseif ($newQty !== '' && $newQty !== $existingQty) {
-                    // Different units — show both with their units
-                    $ingredientMap[$key]['quantity'] = $existingQty . ($existingUnit ? ' ' . $existingUnit : '') . ' + ' . $newQty . ($newUnit ? ' ' . $newUnit : '');
-                    $ingredientMap[$key]['unit'] = ''; // Units are now inline in quantity string
+                } elseif ($newQty !== $existingQty || $newUnit !== $existingUnit) {
+                    // Different units or quantities — build a compound display string
+                    // Format the existing part (may already be a compound string)
+                    $existingDisplay = $ingredientMap[$key]['unit'] !== ''
+                        ? $existingQty . ' ' . $ingredientMap[$key]['unit']
+                        : $ingredientMap[$key]['quantity'];
+                    $newDisplay = $newUnit !== ''
+                        ? $newQty . ' ' . $newUnit
+                        : $newQty;
+                    $ingredientMap[$key]['quantity'] = $existingDisplay . ' + ' . $newDisplay;
+                    $ingredientMap[$key]['unit'] = '';
                 }
             } else {
                 $ingredientMap[$key] = $parsed;
@@ -155,13 +171,90 @@ function generateShoppingList(): void {
 }
 
 /**
+ * Normalise an ingredient name for aggregation by stripping preparation
+ * notes, serving instructions, and other modifiers that don't change
+ * what the ingredient actually is.
+ */
+function normalizeIngredientName(string $name): string {
+    $name = strtolower(trim($name));
+
+    // Strip "optional:" prefix
+    $name = preg_replace('/^optional:\s*/', '', $name);
+
+    // Strip trailing "to serve", "for frying", "for garnish" etc.
+    $name = preg_replace('/\s+(?:to serve|for frying|for garnish|to garnish|to taste)$/i', '', $name);
+
+    // Strip parenthetical notes like "(cold)", "(discard seasoning)"
+    $name = preg_replace('/\s*\(.*?\)\s*/', ' ', $name);
+
+    // Strip trailing preparation words: diced, cubed, chopped, sliced, grated,
+    // minced, softened, melted, juiced, crushed, peeled, ripe, frozen, soaked, etc.
+    $name = preg_replace('/\s+(?:diced|cubed|chopped|sliced|grated|minced|softened|melted|juiced|crushed|peeled|halved|deseeded|trimmed|soaked|cooked|cold|thawed|warmed|heated)$/i', '', $name);
+
+    // Strip leading adjectives: fresh, frozen, ripe, large, small, optional
+    $name = preg_replace('/^(?:fresh|frozen|ripe|large|small|optional|little gem)\s+/i', '', $name);
+
+    // Strip "toppings:" prefix
+    $name = preg_replace('/^toppings:\s*/', '', $name);
+
+    // Collapse whitespace and trim
+    $name = trim(preg_replace('/\s+/', ' ', $name));
+
+    return $name;
+}
+
+/**
+ * Normalise an ingredient name to its singular form for aggregation.
+ * Handles common English plurals found in recipes.
+ */
+function singularize(string $name): string {
+    $name = strtolower(trim($name));
+
+    // Exact plural → singular overrides for irregular/ambiguous words
+    $irregulars = [
+        'potatoes' => 'potato', 'tomatoes' => 'tomato', 'avocados' => 'avocado',
+        'mangoes' => 'mango', 'heroes' => 'hero',
+        'leaves' => 'leaf', 'halves' => 'half', 'loaves' => 'loaf',
+        'berries' => 'berry', 'cherries' => 'cherry', 'strawberries' => 'strawberry',
+        'blueberries' => 'blueberry', 'raspberries' => 'raspberry', 'blackberries' => 'blackberry',
+        'anchovies' => 'anchovy',
+    ];
+    if (isset($irregulars[$name])) return $irregulars[$name];
+
+    // -ies → -y  (e.g. "berries" already handled above, but catch others)
+    if (preg_match('/(.+)ies$/', $name, $m) && strlen($m[1]) > 1) {
+        return $m[1] . 'y';
+    }
+    // -ves → -f  (e.g. "loaves" → "loaf")
+    if (preg_match('/(.+)ves$/', $name, $m)) {
+        return $m[1] . 'f';
+    }
+    // -oes → -o  (catch remaining like "potatoes")
+    if (preg_match('/(.+)oes$/', $name, $m) && strlen($m[1]) > 1) {
+        return $m[1] . 'o';
+    }
+    // -es after s/sh/ch/x/z (e.g. "peaches" → "peach")
+    if (preg_match('/(.+(?:s|sh|ch|x|z))es$/', $name, $m)) {
+        return $m[1];
+    }
+    // General -s plural (e.g. "onions" → "onion", "eggs" → "egg")
+    if (preg_match('/(.+[^s])s$/', $name, $m)) {
+        return $m[1];
+    }
+
+    return $name;
+}
+
+/**
  * Parse an ingredient string into name, quantity, unit
  */
 function parseIngredient(string $raw): array {
     $raw = trim($raw);
 
     // Common patterns: "200g pasta", "2 eggs", "1 tbsp oil", "salt"
-    $pattern = '/^([\d\/\.]+)?\s*(g|kg|ml|l|tbsp|tsp|cup|cups|handful|pinch|can|cans|slice|slices|clove|cloves|pack|packs)?\s*(?:of\s+)?(.+)$/i';
+    // Units are matched only when followed by a space or end-of-string (via lookahead)
+    // to prevent "l" matching the start of words like "lemon" or "lettuce"
+    $pattern = '/^([\d\/\.]+)?\s*((?:g|kg|ml|tbsp|tsp|cup|cups|handful|pinch|can|cans|slice|slices|clove|cloves|pack|packs|l)(?=\s|$))?\s*(?:of\s+)?(.+)$/i';
 
     if (preg_match($pattern, $raw, $m)) {
         $quantityStr = trim($m[1] ?? '');

@@ -1,53 +1,31 @@
 <?php
-/**
- * ByteRight - Meal Plan API
- *
- * POST /api/mealplan.php?action=generate    - Auto-generate a weekly meal plan
- * GET  /api/mealplan.php?action=get&week=2025-01-06  - Get plan for a week
- * POST /api/mealplan.php?action=update      - Update a specific meal slot
- * GET  /api/mealplan.php?action=current     - Get current week's plan
- * DELETE /api/mealplan.php?action=delete&id=1 - Delete a meal plan
- */
+// ByteRight — Meal Plan API (generate, view, update, delete weekly plans)
 
 require_once __DIR__ . '/../config/database.php';
-ob_start(); // Capture any stray PHP output so it doesn't break JSON responses
+ob_start();
 startSession();
 
 $action = $_GET['action'] ?? '';
 
 try {
     switch ($action) {
-        case 'generate':
-            generateMealPlan();
-            break;
-        case 'get':
-            getMealPlan();
-            break;
-        case 'current':
-            getCurrentPlan();
-            break;
-        case 'update':
-            updateMealSlot();
-            break;
-        case 'delete':
-            deleteMealPlan();
-            break;
-        default:
-            jsonResponse(['error' => 'Invalid action'], 400);
+        case 'generate': generateMealPlan(); break;
+        case 'get':      getMealPlan();      break;
+        case 'current':  getCurrentPlan();   break;
+        case 'update':   updateMealSlot();   break;
+        case 'delete':   deleteMealPlan();   break;
+        default:         jsonResponse(['error' => 'Invalid action'], 400);
     }
 } catch (\Throwable $e) {
     jsonResponse(['error' => 'Server error: ' . $e->getMessage()], 500);
 }
 
-/**
- * Auto-generate a weekly meal plan based on user preferences and budget
- */
+// Builds a full week of meals based on the user's budget, diet, and preferences
 function generateMealPlan(): void {
     $userId = requireLogin();
     $data = getRequestBody();
     $db = getDB();
 
-    // Get user preferences
     $stmt = $db->prepare('SELECT weekly_budget, cooking_time_pref, meal_plan_pref, liked_ingredients, disliked_ingredients FROM users WHERE id = ?');
     $stmt->execute([$userId]);
     $prefs = $stmt->fetch();
@@ -55,20 +33,17 @@ function generateMealPlan(): void {
     $budget = (float) ($data['budget'] ?? $prefs['weekly_budget'] ?? 30.00);
     $weekStart = $data['week_start'] ?? date('Y-m-d', strtotime('monday this week'));
 
-    // Parse likes/dislikes
     $likedIngredients = array_filter(array_map('trim', explode(',', strtolower($prefs['liked_ingredients'] ?? ''))));
     $dislikedIngredients = array_filter(array_map('trim', explode(',', strtolower($prefs['disliked_ingredients'] ?? ''))));
 
-    // Get user dietary restrictions
     $stmt = $db->prepare('
         SELECT dp.name FROM user_dietary_preferences udp
-        JOIN dietary_preferences dp ON dp.id = udp.preference_id
-        WHERE udp.user_id = ?
+        JOIN dietary_preferences dp ON dp.id = udp.preference_id WHERE udp.user_id = ?
     ');
     $stmt->execute([$userId]);
     $dietaryPrefs = array_column($stmt->fetchAll(), 'name');
 
-    // Try Spoonacular meal plan API first
+    // Try Spoonacular API first, fall back to local recipes
     $apiPlan = generateFromAPI($budget, $dietaryPrefs);
 
     if ($apiPlan !== null) {
@@ -77,20 +52,16 @@ function generateMealPlan(): void {
         return;
     }
 
-    // Fallback: generate from local recipes
     $localPlan = generateFromLocal($db, $budget, $dietaryPrefs, $prefs['cooking_time_pref'] ?? 'any', $likedIngredients, $dislikedIngredients);
     $planId = saveMealPlan($db, $userId, $weekStart, $budget, $localPlan);
 
-    // Log activity
     $db->prepare('INSERT INTO activity_log (user_id, action_type, reference_id, description) VALUES (?, "plan_created", ?, "Generated a weekly meal plan")')
        ->execute([$userId, $planId]);
 
     jsonResponse(loadFullPlan($db, $planId));
 }
 
-/**
- * Try to generate a meal plan from Spoonacular API
- */
+// Tries to get a full week plan from the Spoonacular API
 function generateFromAPI(float $budget, array $dietaryPrefs): ?array {
     $apiKey = SPOONACULAR_API_KEY;
     if ($apiKey === '') return null;
@@ -99,19 +70,12 @@ function generateFromAPI(float $budget, array $dietaryPrefs): ?array {
     if (in_array('Vegan', $dietaryPrefs)) $diet = 'vegan';
     elseif (in_array('Vegetarian', $dietaryPrefs)) $diet = 'vegetarian';
 
-    // Daily budget in USD (rough GBP to USD conversion)
-    $dailyBudget = round($budget * 1.25 / 7, 2);
-
-    $params = [
-        'apiKey'    => $apiKey,
-        'timeFrame' => 'week',
-    ];
+    $params = ['apiKey' => $apiKey, 'timeFrame' => 'week'];
     if ($diet !== '') $params['diet'] = $diet;
 
     $url = 'https://api.spoonacular.com/mealplanner/generate?' . http_build_query($params);
     $context = stream_context_create(['http' => ['timeout' => 10]]);
     $response = @file_get_contents($url, false, $context);
-
     if ($response === false) return null;
 
     $data = json_decode($response, true);
@@ -119,30 +83,16 @@ function generateFromAPI(float $budget, array $dietaryPrefs): ?array {
 
     $plan = [];
     $dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-
-    // Get nutrients/cost data if available
-    $nutrients = $data['week'] ?? [];
+    $mealTypes = ['breakfast', 'lunch', 'dinner'];
 
     foreach ($dayNames as $dayIndex => $dayName) {
         if (!isset($data['week'][$dayName])) continue;
-        $dayData = $data['week'][$dayName];
-        $meals = $dayData['meals'] ?? [];
+        $meals = $data['week'][$dayName]['meals'] ?? [];
 
-        // Spoonacular provides daily nutrient totals; estimate per-meal cost
-        // by dividing daily total evenly across meals
-        $dailyCostCents = 0;
-        foreach ($meals as $meal) {
-            // pricePerServing is in US cents from Spoonacular
-            $dailyCostCents += ($meal['pricePerServing'] ?? 0);
-        }
-        $mealCount = max(count($meals), 1);
-
-        // First meal -> breakfast, second -> lunch, third -> dinner
-        $mealTypes = ['breakfast', 'lunch', 'dinner'];
         foreach ($meals as $i => $meal) {
             $type = $mealTypes[$i] ?? 'snack';
-            // Convert from US cents to GBP (rough 1 USD = 0.80 GBP)
-            $costGbp = round(($meal['pricePerServing'] ?? ($dailyCostCents / $mealCount)) / 100 * 0.80, 2);
+            // Convert US cents → GBP
+            $costGbp = round(($meal['pricePerServing'] ?? 0) / 100 * 0.80, 2);
             $plan[] = [
                 'day_of_week'      => $dayIndex,
                 'meal_type'        => $type,
@@ -156,135 +106,104 @@ function generateFromAPI(float $budget, array $dietaryPrefs): ?array {
     return $plan;
 }
 
-/**
- * Generate meal plan from local recipe database
- */
+// Picks recipes from the local DB that fit the user's budget, diet, and time constraints
 function generateFromLocal(PDO $db, float $budget, array $dietaryPrefs, string $timePref, array $likedIngredients = [], array $dislikedIngredients = []): array {
-    // Determine time filter
     $maxTime = match($timePref) {
-        'under15' => 15,
-        'under30' => 30,
-        'under60' => 60,
-        default   => 9999,
+        'under15' => 15, 'under30' => 30, 'under60' => 60, default => 9999,
     };
 
-    // Build query for eligible recipes
     $sql = 'SELECT * FROM recipes WHERE (prep_time + cook_time) <= ?';
     $params = [$maxTime];
 
-    // Filter by diet tags
     foreach ($dietaryPrefs as $pref) {
-        $tag = strtolower(str_replace('-', '_', $pref));
         $sql .= ' AND JSON_CONTAINS(tags, ?)';
-        $params[] = json_encode($tag);
+        $params[] = json_encode(strtolower(str_replace('-', '_', $pref)));
     }
 
     $stmt = $db->prepare($sql);
     $stmt->execute($params);
     $recipes = $stmt->fetchAll();
 
-    // Exclude egg-containing recipes for vegetarian/vegan
+    // Skip egg-containing recipes for vegetarian/vegan users
     $isVeg = false;
     foreach ($dietaryPrefs as $pref) {
-        $lower = strtolower($pref);
-        if ($lower === 'vegetarian' || $lower === 'vegan') { $isVeg = true; break; }
+        if (in_array(strtolower($pref), ['vegetarian', 'vegan'])) { $isVeg = true; break; }
     }
     if ($isVeg) {
-        $recipes = array_values(array_filter($recipes, function($r) {
-            return !preg_match('/\beggs?\b/', strtolower($r['ingredients'] ?? ''));
-        }));
+        $recipes = array_values(array_filter($recipes, fn($r) => !preg_match('/\beggs?\b/', strtolower($r['ingredients'] ?? ''))));
     }
 
-    // Filter out recipes containing disliked ingredients
+    // Remove recipes with disliked ingredients
     if (!empty($dislikedIngredients)) {
         $recipes = array_values(array_filter($recipes, function($r) use ($dislikedIngredients) {
             $ing = strtolower($r['ingredients'] ?? '');
-            foreach ($dislikedIngredients as $dislike) {
-                if ($dislike !== '' && str_contains($ing, $dislike)) return false;
-            }
+            foreach ($dislikedIngredients as $dislike) { if ($dislike !== '' && str_contains($ing, $dislike)) return false; }
             return true;
         }));
     }
 
-    // Score recipes by liked ingredients (higher = more liked items)
+    // Boost recipes containing liked ingredients
     foreach ($recipes as &$r) {
         $r['_like_score'] = 0;
         if (!empty($likedIngredients)) {
             $ing = strtolower($r['ingredients'] ?? '');
-            foreach ($likedIngredients as $like) {
-                if ($like !== '' && str_contains($ing, $like)) $r['_like_score']++;
-            }
+            foreach ($likedIngredients as $like) { if ($like !== '' && str_contains($ing, $like)) $r['_like_score']++; }
         }
     }
     unset($r);
 
+    // Fallback chains: relax time → relax diet → all recipes
     if (empty($recipes)) {
-        // Fallback: relax time filter but keep dietary restrictions
         $fallbackSql = 'SELECT * FROM recipes WHERE 1=1';
         $fallbackParams = [];
         foreach ($dietaryPrefs as $pref) {
-            $tag = strtolower(str_replace('-', '_', $pref));
             $fallbackSql .= ' AND JSON_CONTAINS(tags, ?)';
-            $fallbackParams[] = json_encode($tag);
+            $fallbackParams[] = json_encode(strtolower(str_replace('-', '_', $pref)));
         }
         $stmt = $db->prepare($fallbackSql);
         $stmt->execute($fallbackParams);
         $recipes = $stmt->fetchAll();
     }
-
-    // Final fallback if still empty (no recipes match dietary prefs at all)
     if (empty($recipes)) {
-        $stmt = $db->prepare('SELECT * FROM recipes');
-        $stmt->execute();
-        $recipes = $stmt->fetchAll();
+        $recipes = $db->prepare('SELECT * FROM recipes')->execute() ? $db->query('SELECT * FROM recipes')->fetchAll() : [];
     }
-
-    // Guard: if the recipes table is completely empty, return an error
     if (empty($recipes)) {
         jsonResponse(['error' => 'No recipes available. Please add recipes to the database first.'], 400);
     }
 
-    // Separate by tags for variety
+    // Split recipes into breakfast / lunch / dinner pools
     $breakfastRecipes = array_values(array_filter($recipes, fn($r) => str_contains($r['tags'] ?? '', 'breakfast')));
-    $lunchRecipes = array_values(array_filter($recipes, fn($r) => str_contains($r['tags'] ?? '', 'lunch')));
-    $dinnerRecipes = array_values(array_filter($recipes, fn($r) =>
-        str_contains($r['tags'] ?? '', 'dinner') || str_contains($r['tags'] ?? '', 'lunch')
-    ));
+    $lunchRecipes     = array_values(array_filter($recipes, fn($r) => str_contains($r['tags'] ?? '', 'lunch')));
+    $dinnerRecipes    = array_values(array_filter($recipes, fn($r) => str_contains($r['tags'] ?? '', 'dinner') || str_contains($r['tags'] ?? '', 'lunch')));
 
-    // If too few breakfast recipes, supplement with quick/light recipes from general pool
+    // Pad small pools with quick/general recipes
     if (count($breakfastRecipes) < 4) {
-        $quickRecipes = array_filter($recipes, fn($r) =>
-            str_contains($r['tags'] ?? '', 'quick') && !in_array($r['id'], array_column($breakfastRecipes, 'id'))
-        );
+        $quickRecipes = array_filter($recipes, fn($r) => str_contains($r['tags'] ?? '', 'quick') && !in_array($r['id'], array_column($breakfastRecipes, 'id')));
         $breakfastRecipes = array_values(array_merge($breakfastRecipes, array_values($quickRecipes)));
     }
     if (empty($breakfastRecipes)) $breakfastRecipes = $recipes;
-    if (empty($lunchRecipes)) $lunchRecipes = $recipes;
-    if (empty($dinnerRecipes)) $dinnerRecipes = $recipes;
+    if (empty($lunchRecipes))     $lunchRecipes = $recipes;
+    if (empty($dinnerRecipes))    $dinnerRecipes = $recipes;
 
     $dailyBudget = $budget / 7;
-
-    // Include lunch when budget allows (daily > £3 i.e. ~£21/week)
     $includeLunch = $dailyBudget >= 3;
 
-    // Budget allocation per meal type
+    // Split the daily budget across meals
     if ($includeLunch) {
         $breakfastTarget = $dailyBudget * 0.25;
-        $lunchTarget = $dailyBudget * 0.30;
-        $dinnerTarget = $dailyBudget * 0.45;
+        $lunchTarget     = $dailyBudget * 0.30;
+        $dinnerTarget    = $dailyBudget * 0.45;
     } else {
         $breakfastTarget = $dailyBudget * 0.35;
-        $dinnerTarget = $dailyBudget * 0.65;
-        $lunchTarget = 0;
+        $dinnerTarget    = $dailyBudget * 0.65;
+        $lunchTarget     = 0;
     }
 
-    // Sort each pool by liked-ingredient score first, then by closeness to budget target
+    // Sort each pool: liked ingredients first, then closest to budget target
     $sortByTarget = function(array &$pool, float $target) {
         usort($pool, function($a, $b) use ($target) {
-            // Higher like score first
             $likeDiff = ($b['_like_score'] ?? 0) - ($a['_like_score'] ?? 0);
             if ($likeDiff !== 0) return $likeDiff;
-            // Then closest to budget target
             return abs(($a['estimated_cost'] ?? 0) - $target) <=> abs(($b['estimated_cost'] ?? 0) - $target);
         });
     };
@@ -293,7 +212,7 @@ function generateFromLocal(PDO $db, float $budget, array $dietaryPrefs, string $
     $sortByTarget($dinnerRecipes, $dinnerTarget);
     if ($includeLunch) $sortByTarget($lunchRecipes, $lunchTarget);
 
-    // Take top 6 best-fit candidates and shuffle for variety
+    // Take the top candidates and shuffle for variety
     $shuffleTop = function(array $pool, int $n = 6): array {
         $top = array_slice($pool, 0, min($n, count($pool)));
         shuffle($top);
@@ -301,47 +220,29 @@ function generateFromLocal(PDO $db, float $budget, array $dietaryPrefs, string $
     };
 
     $breakfastPool = $shuffleTop($breakfastRecipes);
-    $dinnerPool = $shuffleTop($dinnerRecipes);
-    $lunchPool = $includeLunch ? $shuffleTop($lunchRecipes) : [];
+    $dinnerPool    = $shuffleTop($dinnerRecipes);
+    $lunchPool     = $includeLunch ? $shuffleTop($lunchRecipes) : [];
 
-    // Build a recipe cost lookup from all pools
     $recipeCostMap = [];
     foreach (array_merge($breakfastRecipes, $dinnerRecipes, $lunchRecipes) as $r) {
         $recipeCostMap[$r['id']] = (float) ($r['estimated_cost'] ?? 0);
     }
 
+    // Assign meals for each day of the week
     $plan = [];
-
     for ($day = 0; $day < 7; $day++) {
-        $plan[] = [
-            'day_of_week' => $day,
-            'meal_type'   => 'breakfast',
-            'recipe_id'   => $breakfastPool[$day % count($breakfastPool)]['id'],
-        ];
-
+        $plan[] = ['day_of_week' => $day, 'meal_type' => 'breakfast', 'recipe_id' => $breakfastPool[$day % count($breakfastPool)]['id']];
         if ($includeLunch && !empty($lunchPool)) {
-            $plan[] = [
-                'day_of_week' => $day,
-                'meal_type'   => 'lunch',
-                'recipe_id'   => $lunchPool[$day % count($lunchPool)]['id'],
-            ];
+            $plan[] = ['day_of_week' => $day, 'meal_type' => 'lunch', 'recipe_id' => $lunchPool[$day % count($lunchPool)]['id']];
         }
-
-        $plan[] = [
-            'day_of_week' => $day,
-            'meal_type'   => 'dinner',
-            'recipe_id'   => $dinnerPool[$day % count($dinnerPool)]['id'],
-        ];
+        $plan[] = ['day_of_week' => $day, 'meal_type' => 'dinner', 'recipe_id' => $dinnerPool[$day % count($dinnerPool)]['id']];
     }
 
-    // Budget enforcement: if total exceeds budget, swap expensive meals for cheaper ones
+    // If over budget, swap the most expensive meals for cheaper alternatives
     $totalCost = 0;
-    foreach ($plan as $item) {
-        $totalCost += $recipeCostMap[$item['recipe_id']] ?? 0;
-    }
+    foreach ($plan as $item) { $totalCost += $recipeCostMap[$item['recipe_id']] ?? 0; }
 
     if ($totalCost > $budget) {
-        // Sort each pool by cost ascending for cheap alternatives
         $cheapBreakfast = $breakfastRecipes;
         $cheapDinner = $dinnerRecipes;
         $cheapLunch = $lunchRecipes;
@@ -349,7 +250,6 @@ function generateFromLocal(PDO $db, float $budget, array $dietaryPrefs, string $
         usort($cheapDinner, fn($a, $b) => ($a['estimated_cost'] ?? 0) <=> ($b['estimated_cost'] ?? 0));
         usort($cheapLunch, fn($a, $b) => ($a['estimated_cost'] ?? 0) <=> ($b['estimated_cost'] ?? 0));
 
-        // Sort plan items by cost descending to replace most expensive first
         $planWithCost = [];
         foreach ($plan as $i => $item) {
             $planWithCost[] = ['index' => $i, 'cost' => $recipeCostMap[$item['recipe_id']] ?? 0, 'type' => $item['meal_type']];
@@ -358,24 +258,15 @@ function generateFromLocal(PDO $db, float $budget, array $dietaryPrefs, string $
 
         foreach ($planWithCost as $entry) {
             if ($totalCost <= $budget) break;
-
             $idx = $entry['index'];
             $currentCost = $entry['cost'];
-            $type = $entry['type'];
+            $cheapPool = match($entry['type']) { 'breakfast' => $cheapBreakfast, 'lunch' => $cheapLunch, default => $cheapDinner };
 
-            $cheapPool = match($type) {
-                'breakfast' => $cheapBreakfast,
-                'lunch' => $cheapLunch,
-                default => $cheapDinner,
-            };
-
-            // Find cheapest recipe not already used on this day
             foreach ($cheapPool as $cheap) {
                 $cheapCost = (float) ($cheap['estimated_cost'] ?? 0);
                 if ($cheapCost < $currentCost) {
                     $totalCost = $totalCost - $currentCost + $cheapCost;
                     $plan[$idx]['recipe_id'] = $cheap['id'];
-                    $recipeCostMap[$cheap['id']] = $cheapCost;
                     break;
                 }
             }
@@ -385,41 +276,29 @@ function generateFromLocal(PDO $db, float $budget, array $dietaryPrefs, string $
     return $plan;
 }
 
-/**
- * Recalculate total_estimated_cost on a meal plan from its items.
- * Items with a recipe_id get cost from the recipes table;
- * items with only estimated_cost (API / custom) use that value.
- */
+// Recalculates the total cost on a plan from its individual items
 function recalculateMealPlanTotal(PDO $db, int $planId): float {
     $stmt = $db->prepare('
         SELECT mpi.recipe_id, mpi.estimated_cost AS item_cost, r.estimated_cost AS recipe_cost
-        FROM meal_plan_items mpi
-        LEFT JOIN recipes r ON r.id = mpi.recipe_id
-        WHERE mpi.meal_plan_id = ?
+        FROM meal_plan_items mpi LEFT JOIN recipes r ON r.id = mpi.recipe_id WHERE mpi.meal_plan_id = ?
     ');
     $stmt->execute([$planId]);
-    $rows = $stmt->fetchAll();
 
     $total = 0;
-    foreach ($rows as $row) {
-        // Prefer recipe cost for local recipes, fall back to item-level cost (API / custom)
+    foreach ($stmt->fetchAll() as $row) {
         $total += (float) ($row['recipe_cost'] ?? $row['item_cost'] ?? 0);
     }
     $total = round($total, 2);
 
-    $db->prepare('UPDATE meal_plans SET total_estimated_cost = ? WHERE id = ?')
-       ->execute([$total, $planId]);
-
+    $db->prepare('UPDATE meal_plans SET total_estimated_cost = ? WHERE id = ?')->execute([$total, $planId]);
     return $total;
 }
 
-/**
- * Save the generated plan to database (transactional)
- */
+// Wraps the plan + items insert in a transaction
 function saveMealPlan(PDO $db, int $userId, string $weekStart, float $budget, array $items): int {
     $db->beginTransaction();
     try {
-        // Delete existing plan for this week
+        // Remove any existing plan for this week
         $stmt = $db->prepare('SELECT id FROM meal_plans WHERE user_id = ? AND week_start = ?');
         $stmt->execute([$userId, $weekStart]);
         $existing = $stmt->fetch();
@@ -427,33 +306,19 @@ function saveMealPlan(PDO $db, int $userId, string $weekStart, float $budget, ar
             $db->prepare('DELETE FROM meal_plans WHERE id = ?')->execute([$existing['id']]);
         }
 
-        // Insert plan header (total recalculated after items are inserted)
-        $stmt = $db->prepare('
-            INSERT INTO meal_plans (user_id, week_start, budget_target, total_estimated_cost)
-            VALUES (?, ?, ?, 0)
-        ');
+        $stmt = $db->prepare('INSERT INTO meal_plans (user_id, week_start, budget_target, total_estimated_cost) VALUES (?, ?, ?, 0)');
         $stmt->execute([$userId, $weekStart, $budget]);
         $planId = (int) $db->lastInsertId();
 
-        // Insert items (include estimated_cost for API / custom meals)
-        $stmt = $db->prepare('
-            INSERT INTO meal_plan_items (meal_plan_id, day_of_week, meal_type, recipe_id, custom_meal_name, estimated_cost)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ');
+        $stmt = $db->prepare('INSERT INTO meal_plan_items (meal_plan_id, day_of_week, meal_type, recipe_id, custom_meal_name, estimated_cost) VALUES (?, ?, ?, ?, ?, ?)');
         foreach ($items as $item) {
             $stmt->execute([
-                $planId,
-                $item['day_of_week'],
-                $item['meal_type'],
-                $item['recipe_id'] ?? null,
-                $item['custom_meal_name'] ?? null,
-                $item['estimated_cost'] ?? null,
+                $planId, $item['day_of_week'], $item['meal_type'],
+                $item['recipe_id'] ?? null, $item['custom_meal_name'] ?? null, $item['estimated_cost'] ?? null,
             ]);
         }
 
-        // Recalculate total from actual item costs
         recalculateMealPlanTotal($db, $planId);
-
         $db->commit();
         return $planId;
     } catch (\Throwable $e) {
@@ -462,23 +327,17 @@ function saveMealPlan(PDO $db, int $userId, string $weekStart, float $budget, ar
     }
 }
 
-/**
- * Load a full meal plan with recipe details
- */
+// Loads a plan with all its meal items and recipe details
 function loadFullPlan(PDO $db, int $planId): array {
     $stmt = $db->prepare('SELECT * FROM meal_plans WHERE id = ?');
     $stmt->execute([$planId]);
     $plan = $stmt->fetch();
-
-    if (!$plan) {
-        jsonResponse(['error' => 'Meal plan not found'], 404);
-    }
+    if (!$plan) jsonResponse(['error' => 'Meal plan not found'], 404);
 
     $stmt = $db->prepare('
         SELECT mpi.*, r.title as recipe_title, r.prep_time, r.cook_time,
                r.estimated_cost as recipe_cost, r.difficulty, r.tags, r.ingredients as recipe_ingredients
-        FROM meal_plan_items mpi
-        LEFT JOIN recipes r ON r.id = mpi.recipe_id
+        FROM meal_plan_items mpi LEFT JOIN recipes r ON r.id = mpi.recipe_id
         WHERE mpi.meal_plan_id = ?
         ORDER BY mpi.day_of_week, FIELD(mpi.meal_type, "breakfast", "lunch", "dinner", "snack")
     ');
@@ -498,19 +357,13 @@ function loadFullPlan(PDO $db, int $planId): array {
 function getMealPlan(): void {
     $userId = requireLogin();
     $weekStart = $_GET['week'] ?? '';
-
-    if ($weekStart === '') {
-        jsonResponse(['error' => 'week parameter required (YYYY-MM-DD)'], 400);
-    }
+    if ($weekStart === '') jsonResponse(['error' => 'week parameter required (YYYY-MM-DD)'], 400);
 
     $db = getDB();
     $stmt = $db->prepare('SELECT id FROM meal_plans WHERE user_id = ? AND week_start = ?');
     $stmt->execute([$userId, $weekStart]);
     $plan = $stmt->fetch();
-
-    if (!$plan) {
-        jsonResponse(['error' => 'No meal plan found for this week'], 404);
-    }
+    if (!$plan) jsonResponse(['error' => 'No meal plan found for this week'], 404);
 
     jsonResponse(loadFullPlan($db, $plan['id']));
 }
@@ -523,10 +376,7 @@ function getCurrentPlan(): void {
     $stmt = $db->prepare('SELECT id FROM meal_plans WHERE user_id = ? AND week_start = ?');
     $stmt->execute([$userId, $weekStart]);
     $plan = $stmt->fetch();
-
-    if (!$plan) {
-        jsonResponse(['error' => 'No meal plan for current week', 'week_start' => $weekStart], 404);
-    }
+    if (!$plan) jsonResponse(['error' => 'No meal plan for current week', 'week_start' => $weekStart], 404);
 
     jsonResponse(loadFullPlan($db, $plan['id']));
 }
@@ -540,42 +390,28 @@ function updateMealSlot(): void {
     $recipeId = isset($data['recipe_id']) ? (int) $data['recipe_id'] : null;
     $customName = $data['custom_meal_name'] ?? null;
 
-    if ($itemId <= 0) {
-        jsonResponse(['error' => 'item_id is required'], 400);
-    }
+    if ($itemId <= 0) jsonResponse(['error' => 'item_id is required'], 400);
 
-    // Verify ownership and get parent plan id
     $stmt = $db->prepare('
         SELECT mpi.id, mpi.meal_plan_id FROM meal_plan_items mpi
-        JOIN meal_plans mp ON mp.id = mpi.meal_plan_id
-        WHERE mpi.id = ? AND mp.user_id = ?
+        JOIN meal_plans mp ON mp.id = mpi.meal_plan_id WHERE mpi.id = ? AND mp.user_id = ?
     ');
     $stmt->execute([$itemId, $userId]);
     $row = $stmt->fetch();
-    if (!$row) {
-        jsonResponse(['error' => 'Not found or not authorized'], 403);
-    }
+    if (!$row) jsonResponse(['error' => 'Not found or not authorized'], 403);
 
-    $stmt = $db->prepare('UPDATE meal_plan_items SET recipe_id = ?, custom_meal_name = ? WHERE id = ?');
-    $stmt->execute([$recipeId, $customName, $itemId]);
+    $db->prepare('UPDATE meal_plan_items SET recipe_id = ?, custom_meal_name = ? WHERE id = ?')->execute([$recipeId, $customName, $itemId]);
 
-    // Recalculate plan total so the front-end stays in sync
     $newTotal = recalculateMealPlanTotal($db, (int) $row['meal_plan_id']);
-
     jsonResponse(['success' => true, 'total_estimated_cost' => $newTotal]);
 }
 
 function deleteMealPlan(): void {
     $userId = requireLogin();
     $planId = (int) ($_GET['id'] ?? 0);
-
-    if ($planId <= 0) {
-        jsonResponse(['error' => 'Plan ID required'], 400);
-    }
+    if ($planId <= 0) jsonResponse(['error' => 'Plan ID required'], 400);
 
     $db = getDB();
-    $stmt = $db->prepare('DELETE FROM meal_plans WHERE id = ? AND user_id = ?');
-    $stmt->execute([$planId, $userId]);
-
+    $db->prepare('DELETE FROM meal_plans WHERE id = ? AND user_id = ?')->execute([$planId, $userId]);
     jsonResponse(['success' => true]);
 }

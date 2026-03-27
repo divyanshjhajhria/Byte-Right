@@ -20,6 +20,8 @@ body {
   flex-wrap: wrap;
   gap: var(--sp-4);
 }
+.welcome-section > * + * { margin-top: var(--sp-2); }
+@supports (gap: 1px) { .welcome-section > * + * { margin-top: 0; } }
 
 .welcome-content h1 {
   font-size: 1.9rem;
@@ -71,19 +73,35 @@ body {
   grid-template-columns: 58% 1fr;
   box-shadow: var(--shadow);
   border: 1px solid var(--border);
+  min-height: 200px;
   aspect-ratio: 16 / 5;
 }
 
+@supports not (aspect-ratio: 16 / 5) {
+  .viral-hero {
+    height: 280px;
+  }
+}
+
 .viral-hero-image {
+  position: relative;
   overflow: hidden;
-  width: 100%;
-  height: 100%;
+  /* Safari fix: don't use height:100% inside aspect-ratio grid —
+     let the grid stretch it naturally via align-self:stretch (default) */
+  min-height: 0;
+  align-self: stretch;
 }
 
 .viral-hero-image img {
+  /* Use absolute positioning for Safari compatibility with aspect-ratio grids */
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
+  -o-object-fit: cover;
   object-fit: cover;
+  -o-object-position: bottom;
   object-position: bottom;
   display: block;
 }
@@ -94,6 +112,14 @@ body {
   flex-direction: column;
   justify-content: center;
   gap: var(--sp-2);
+}
+.viral-hero-content > * + * {
+  margin-top: var(--sp-2);
+}
+@supports (gap: 1px) {
+  .viral-hero-content > * + * {
+    margin-top: 0;
+  }
 }
 
 .viral-label {
@@ -148,6 +174,16 @@ body {
   flex-wrap: wrap;
   align-items: center;
 }
+.viral-actions > * {
+  margin-right: var(--sp-1);
+  margin-bottom: var(--sp-1);
+}
+@supports (gap: 1px) {
+  .viral-actions > * {
+    margin-right: 0;
+    margin-bottom: 0;
+  }
+}
 
 .viral-btn-primary {
   padding: 8px 18px;
@@ -190,7 +226,8 @@ body {
 .quick-access-section {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--sp-3);
+  row-gap: var(--sp-3);
+  column-gap: var(--sp-3);
   margin-bottom: var(--sp-4);
 }
 
@@ -215,6 +252,8 @@ body {
   gap: var(--sp-1);
   margin-bottom: var(--sp-2);
 }
+.week-preview > * + * { margin-top: var(--sp-1); }
+@supports (gap: 1px) { .week-preview > * + * { margin-top: 0; } }
 
 .week-day {
   display: flex;
@@ -323,6 +362,8 @@ body {
   scrollbar-width: thin;
   scrollbar-color: rgba(106, 170, 42, 0.25) transparent;
 }
+.trending-scroll > * + * { margin-left: var(--sp-2); }
+@supports (gap: 1px) { .trending-scroll > * + * { margin-left: 0; } }
 
 .trending-scroll::-webkit-scrollbar { height: 3px; }
 .trending-scroll::-webkit-scrollbar-track { background: transparent; }
@@ -359,6 +400,17 @@ body {
 .trending-card-img.has-image {
   background: none;
   font-size: 0;
+  position: relative;
+}
+.trending-card-img img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  -o-object-fit: cover;
+  object-fit: cover;
+  display: block;
 }
 
 .trending-badge {
@@ -408,7 +460,8 @@ body {
 .nav-cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(17.5em, 1fr));
-  gap: var(--sp-2);
+  row-gap: var(--sp-2);
+  column-gap: var(--sp-2);
 }
 
 .nav-card {
@@ -426,6 +479,8 @@ body {
   position: relative;
   overflow: hidden;
 }
+.nav-card > * + * { margin-left: var(--sp-2); }
+@supports (gap: 1px) { .nav-card > * + * { margin-left: 0; } }
 
 .nav-card:hover {
   transform: translateY(-2px);
@@ -465,7 +520,8 @@ body {
 .dashboard-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--sp-3);
+  row-gap: var(--sp-3);
+  column-gap: var(--sp-3);
   margin-bottom: var(--sp-4);
 }
 
@@ -508,15 +564,11 @@ body {
 }
 
 .friend-post-avatar {
-  font-size: 1.3rem;
   flex-shrink: 0;
-  width: 2.2rem;
-  height: 2.2rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--green-tint);
-  border-radius: 50%;
+  line-height: 1;
 }
 
 .friend-post-meta {
@@ -597,10 +649,28 @@ body {
   flex-shrink: 0;
   width: 2.8rem;
   height: 2.8rem;
+  min-width: 2.8rem;
+  min-height: 2.8rem;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--green-tint);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  position: relative;
+}
+.budget-recipe-icon.has-image {
+  background: none;
+}
+.budget-recipe-icon img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  -o-object-fit: cover;
+  object-fit: cover;
+  display: block;
   border-radius: var(--radius-sm);
 }
 
@@ -652,7 +722,32 @@ body {
   transform: translateX(3px);
 }
 
-.saved-recipe-icon { font-size: 1.5rem; }
+.saved-recipe-icon {
+  font-size: 1.5rem;
+  width: 2.4rem;
+  height: 2.4rem;
+  min-width: 2.4rem;
+  min-height: 2.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  position: relative;
+}
+.saved-recipe-icon.has-image { background: none; }
+.saved-recipe-icon img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  -o-object-fit: cover;
+  object-fit: cover;
+  display: block;
+  border-radius: var(--radius-sm);
+}
 
 .saved-recipe-info { flex: 1; }
 

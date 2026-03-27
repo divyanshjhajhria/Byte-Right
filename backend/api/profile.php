@@ -1,14 +1,5 @@
 <?php
-/**
- * ByteRight - User Profile API
- *
- * GET    /api/profile.php                      - Get current user profile
- * POST   /api/profile.php?action=update         - Update profile settings
- * POST   /api/profile.php?action=password       - Change password
- * POST   /api/profile.php?action=dietary        - Update dietary preferences
- * GET    /api/profile.php?action=stats          - Get user stats
- * GET    /api/profile.php?action=activity       - Get recent activity
- */
+// ByteRight — User Profile (view, update settings, change password, stats)
 
 require_once __DIR__ . '/../config/database.php';
 startSession();
@@ -16,33 +7,20 @@ startSession();
 $action = $_GET['action'] ?? 'get';
 
 switch ($action) {
-    case 'get':
-        getProfile();
-        break;
-    case 'update':
-        updateProfile();
-        break;
-    case 'password':
-        changePassword();
-        break;
-    case 'dietary':
-        updateDietary();
-        break;
-    case 'stats':
-        getStats();
-        break;
-    case 'activity':
-        getActivity();
-        break;
-    default:
-        jsonResponse(['error' => 'Invalid action'], 400);
+    case 'get':      getProfile();     break;
+    case 'update':   updateProfile();  break;
+    case 'password': changePassword(); break;
+    case 'dietary':  updateDietary();  break;
+    case 'stats':    getStats();       break;
+    case 'activity': getActivity();    break;
+    default:         jsonResponse(['error' => 'Invalid action'], 400);
 }
 
+// Returns the user's full profile including dietary preferences
 function getProfile(): void {
     $userId = requireLogin();
     $db = getDB();
 
-    // User info
     $stmt = $db->prepare('
         SELECT id, name, email, university, avatar_path, weekly_budget,
                cooking_time_pref, meal_plan_pref, allergies,
@@ -52,10 +30,8 @@ function getProfile(): void {
     $stmt->execute([$userId]);
     $user = $stmt->fetch();
 
-    // Dietary preferences
     $stmt = $db->prepare('
-        SELECT dp.id, dp.name
-        FROM user_dietary_preferences udp
+        SELECT dp.id, dp.name FROM user_dietary_preferences udp
         JOIN dietary_preferences dp ON dp.id = udp.preference_id
         WHERE udp.user_id = ?
     ');
@@ -65,6 +41,7 @@ function getProfile(): void {
     jsonResponse($user);
 }
 
+// Saves whichever profile fields were sent (name, budget, allergies, etc.)
 function updateProfile(): void {
     $userId = requireLogin();
     $data = getRequestBody();
@@ -81,15 +58,12 @@ function updateProfile(): void {
         }
     }
 
-    if (empty($sets)) {
-        jsonResponse(['error' => 'No fields to update'], 400);
-    }
+    if (empty($sets)) jsonResponse(['error' => 'No fields to update'], 400);
 
     $params[] = $userId;
-    $sql = 'UPDATE users SET ' . implode(', ', $sets) . ' WHERE id = ?';
-    $db->prepare($sql)->execute($params);
+    $db->prepare('UPDATE users SET ' . implode(', ', $sets) . ' WHERE id = ?')->execute($params);
 
-    // Update dietary preferences if provided
+    // Also update dietary preferences if included
     if (isset($data['dietary_preference_ids']) && is_array($data['dietary_preference_ids'])) {
         $db->prepare('DELETE FROM user_dietary_preferences WHERE user_id = ?')->execute([$userId]);
         $stmt = $db->prepare('INSERT INTO user_dietary_preferences (user_id, preference_id) VALUES (?, ?)');
@@ -101,6 +75,7 @@ function updateProfile(): void {
     jsonResponse(['success' => true]);
 }
 
+// Verifies the old password before setting a new one
 function changePassword(): void {
     $userId = requireLogin();
     $data = getRequestBody();
@@ -110,15 +85,9 @@ function changePassword(): void {
     $newPass = $data['new_password'] ?? '';
     $confirm = $data['confirm_password'] ?? '';
 
-    if ($current === '' || $newPass === '' || $confirm === '') {
-        jsonResponse(['error' => 'All password fields are required'], 400);
-    }
-    if (strlen($newPass) < 8) {
-        jsonResponse(['error' => 'New password must be at least 8 characters'], 400);
-    }
-    if ($newPass !== $confirm) {
-        jsonResponse(['error' => 'New passwords do not match'], 400);
-    }
+    if ($current === '' || $newPass === '' || $confirm === '') jsonResponse(['error' => 'All password fields are required'], 400);
+    if (strlen($newPass) < 8) jsonResponse(['error' => 'New password must be at least 8 characters'], 400);
+    if ($newPass !== $confirm) jsonResponse(['error' => 'New passwords do not match'], 400);
 
     $stmt = $db->prepare('SELECT password_hash FROM users WHERE id = ?');
     $stmt->execute([$userId]);
@@ -134,18 +103,16 @@ function changePassword(): void {
     jsonResponse(['success' => true]);
 }
 
+// Replaces the user's dietary preferences with the given set of IDs
 function updateDietary(): void {
     $userId = requireLogin();
     $data = getRequestBody();
     $db = getDB();
 
     $prefIds = $data['preference_ids'] ?? [];
-    if (!is_array($prefIds)) {
-        jsonResponse(['error' => 'preference_ids must be an array'], 400);
-    }
+    if (!is_array($prefIds)) jsonResponse(['error' => 'preference_ids must be an array'], 400);
 
     $db->prepare('DELETE FROM user_dietary_preferences WHERE user_id = ?')->execute([$userId]);
-
     $stmt = $db->prepare('INSERT INTO user_dietary_preferences (user_id, preference_id) VALUES (?, ?)');
     foreach ($prefIds as $prefId) {
         $stmt->execute([$userId, (int)$prefId]);
@@ -154,47 +121,34 @@ function updateDietary(): void {
     jsonResponse(['success' => true]);
 }
 
+// Gathers aggregate stats — saved recipes, posts, likes, friends, budget surplus
 function getStats(): void {
     $userId = requireLogin();
     $db = getDB();
 
-    // Recipes saved
     $stmt = $db->prepare('SELECT COUNT(*) as count FROM saved_recipes WHERE user_id = ?');
     $stmt->execute([$userId]);
     $recipesSaved = $stmt->fetch()['count'];
 
-    // Posts made
     $stmt = $db->prepare('SELECT COUNT(*) as count FROM posts WHERE user_id = ?');
     $stmt->execute([$userId]);
     $postsCount = $stmt->fetch()['count'];
 
-    // Likes received
-    $stmt = $db->prepare('
-        SELECT COALESCE(SUM(p.likes_count), 0) as total
-        FROM posts p WHERE p.user_id = ?
-    ');
+    $stmt = $db->prepare('SELECT COALESCE(SUM(p.likes_count), 0) as total FROM posts p WHERE p.user_id = ?');
     $stmt->execute([$userId]);
     $likesReceived = $stmt->fetch()['total'];
 
-    // Friends count
-    $stmt = $db->prepare('
-        SELECT COUNT(*) as count FROM friendships
-        WHERE (requester_id = ? OR addressee_id = ?) AND status = "accepted"
-    ');
+    $stmt = $db->prepare('SELECT COUNT(*) as count FROM friendships WHERE (requester_id = ? OR addressee_id = ?) AND status = "accepted"');
     $stmt->execute([$userId, $userId]);
     $friendsCount = $stmt->fetch()['count'];
 
-    // Meal plans created
     $stmt = $db->prepare('SELECT COUNT(*) as count FROM meal_plans WHERE user_id = ?');
     $stmt->execute([$userId]);
     $plansCount = $stmt->fetch()['count'];
 
-    // Total amount under budget across all meal plans
-    // Note: this is "budget surplus" (budget - estimated cost), not real-world savings
     $stmt = $db->prepare('
         SELECT COALESCE(SUM(budget_target - total_estimated_cost), 0) as surplus
-        FROM meal_plans
-        WHERE user_id = ? AND budget_target IS NOT NULL AND total_estimated_cost < budget_target
+        FROM meal_plans WHERE user_id = ? AND budget_target IS NOT NULL AND total_estimated_cost < budget_target
     ');
     $stmt->execute([$userId]);
     $budgetSurplus = $stmt->fetch()['surplus'];
@@ -210,17 +164,12 @@ function getStats(): void {
     ]);
 }
 
+// Returns the user's 20 most recent activity entries
 function getActivity(): void {
     $userId = requireLogin();
     $db = getDB();
 
-    $stmt = $db->prepare('
-        SELECT action_type, description, created_at
-        FROM activity_log
-        WHERE user_id = ?
-        ORDER BY created_at DESC
-        LIMIT 20
-    ');
+    $stmt = $db->prepare('SELECT action_type, description, created_at FROM activity_log WHERE user_id = ? ORDER BY created_at DESC LIMIT 20');
     $stmt->execute([$userId]);
 
     jsonResponse($stmt->fetchAll());

@@ -78,15 +78,11 @@ body {
 }
 
 .user-avatar-small {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #ffcc80 0%, #ffb74d 100%);
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
-  flex-shrink: 0;
+  line-height: 1;
 }
 
 .post-input {
@@ -188,16 +184,11 @@ body {
 }
 
 .user-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #ffcc80 0%, #ffb74d 100%);
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.6rem;
-  flex-shrink: 0;
-  box-shadow: 0 3px 8px rgba(251, 192, 45, 0.3);
+  line-height: 1;
 }
 
 .post-user-info {
@@ -416,15 +407,11 @@ body {
 }
 
 .user-avatar-tiny {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #ffcc80 0%, #ffb74d 100%);
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
-  flex-shrink: 0;
+  line-height: 1;
 }
 
 .active-user-info {

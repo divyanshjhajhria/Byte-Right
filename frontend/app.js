@@ -100,6 +100,24 @@ function showToast(message, type = 'success') {
 }
 
 /**
+ * Generate a letter-avatar HTML string from a user name.
+ * Returns a styled <span> with the first letter on a deterministic colour.
+ */
+function letterAvatar(name, sizePx) {
+    const letter = (name || '?')[0].toUpperCase();
+    const hue = [...name].reduce((h, c) => h + c.charCodeAt(0), 0) % 360;
+    const size = sizePx || 40;
+    return `<span style="
+        display:inline-flex;align-items:center;justify-content:center;
+        width:${size}px;height:${size}px;border-radius:50%;
+        background:hsl(${hue}, 45%, 65%);color:#fff;
+        font-weight:700;font-size:${Math.round(size * 0.45)}px;
+        font-family:Inter,sans-serif;letter-spacing:0;line-height:1;
+        flex-shrink:0;
+    ">${letter}</span>`;
+}
+
+/**
  * Return a deterministic icon for a recipe based on its title and tags
  */
 function getRecipeIcon(recipe) {
@@ -262,13 +280,14 @@ async function initDashboardPage(user) {
         const heroRecipes = Array.isArray(heroData) ? heroData : (heroData?.recipes || []);
         if (heroRecipes.length > 0) {
             let heroIndex = 0;
-            const heroIcons = ['viral_pic.jpg', 'viral_pic.jpg', 'viral_pic.jpg', 'viral_pic.jpg', 'viral_pic.jpg'];
 
             function renderHero(idx) {
                 const r = heroRecipes[idx];
                 const totalTime = (r.prep_time || 0) + (r.cook_time || 0);
                 document.getElementById('heroTitle').textContent = r.title;
                 document.getElementById('heroDesc').textContent = r.description || '';
+                const heroImg = document.getElementById('heroImage');
+                if (heroImg && r.image_url) heroImg.src = r.image_url;
                 document.getElementById('heroMeta').innerHTML = `
                     ${r.estimated_cost ? `<span class="viral-pill">£${parseFloat(r.estimated_cost).toFixed(2)} / serving</span>` : ''}
                     ${totalTime ? `<span class="viral-pill">⏱ ${totalTime} min</span>` : ''}
@@ -324,7 +343,7 @@ async function initDashboardPage(user) {
                 const totalTime = (r.prep_time || 0) + (r.cook_time || 0);
                 const cost = r.estimated_cost ? `£${parseFloat(r.estimated_cost).toFixed(2)}` : '';
                 const imgContent = r.image_url
-                    ? `<img src="${escapeHtml(r.image_url)}" alt="${escapeHtml(r.title)}" style="width:100%;height:100%;object-fit:cover;display:block;">`
+                    ? `<img src="${escapeHtml(r.image_url)}" alt="${escapeHtml(r.title)}">`
                     : getRecipeIcon(r);
                 return `
                     <div class="trending-card" onclick="openRecipeModal(${r.id})" title="${escapeHtml(r.title)}">
@@ -358,7 +377,7 @@ async function initDashboardPage(user) {
                 return `
                 <div class="friend-post-item">
                     <div class="friend-post-header">
-                        <div class="friend-post-avatar">${p.author_avatar || '👤'}</div>
+                        <div class="friend-post-avatar">${letterAvatar(p.author_name, 35)}</div>
                         <div class="friend-post-meta">
                             <div class="friend-post-name">${escapeHtml(p.author_name)}</div>
                             <div class="friend-post-time">${timeAgo(p.created_at)}</div>
@@ -383,13 +402,15 @@ async function initDashboardPage(user) {
         const budgetList = Array.isArray(budgetData) ? budgetData : (budgetData?.recipes || []);
         if (container && budgetList.length > 0) {
             container.innerHTML = budgetList.slice(0, 5).map(r => {
-                const icon = getRecipeIcon(r);
                 const totalTime = (parseInt(r.prep_time) || 0) + (parseInt(r.cook_time) || 0);
                 const timeStr = totalTime > 0 ? `${totalTime} min` : '';
                 const difficultyStr = r.difficulty || 'easy';
+                const iconContent = r.image_url
+                    ? `<img src="${escapeHtml(r.image_url)}" alt="${escapeHtml(r.title)}">`
+                    : getRecipeIcon(r);
                 return `
                 <div class="budget-recipe-item" onclick="openRecipeModal(${r.id})">
-                    <div class="budget-recipe-icon">${icon}</div>
+                    <div class="budget-recipe-icon${r.image_url ? ' has-image' : ''}">${iconContent}</div>
                     <div class="budget-recipe-info">
                         <div class="budget-recipe-name">${escapeHtml(r.title)}</div>
                         <div class="budget-recipe-meta">${difficultyStr}${timeStr ? ' · ' + timeStr : ''}</div>
@@ -408,15 +429,19 @@ async function initDashboardPage(user) {
         const container = document.getElementById('savedRecipes');
         const savedList = Array.isArray(savedData) ? savedData : (savedData?.recipes || []);
         if (container && savedList.length > 0) {
-            container.innerHTML = savedList.slice(0, 4).map(r => `
+            container.innerHTML = savedList.slice(0, 4).map(r => {
+                const savedIconContent = r.image_url
+                    ? `<img src="${escapeHtml(r.image_url)}" alt="${escapeHtml(r.title)}">`
+                    : getRecipeIcon(r);
+                return `
                 <div class="saved-recipe-item" onclick="openRecipeModal(${r.id || r.recipe_id})">
-                    <span class="saved-recipe-icon">${getRecipeIcon(r)}</span>
+                    <span class="saved-recipe-icon${r.image_url ? ' has-image' : ''}">${savedIconContent}</span>
                     <div class="saved-recipe-info">
                         <div class="saved-recipe-title">${escapeHtml(r.title)}</div>
                         <div class="saved-recipe-meta">${r.difficulty || 'easy'} · ${(r.prep_time||0)+(r.cook_time||0)} min</div>
                     </div>
                 </div>
-            `).join('');
+            `;}).join('');
         } else if (container) {
             container.innerHTML = '<p style="text-align:center;padding:16px;color:#8a7a6a;font-size:0.85rem;">No saved recipes yet. Browse recipes to save your favourites!</p>';
         }
@@ -727,7 +752,8 @@ async function loadCurrentPlan(grid, aside) {
     try {
         const plan = await apiCall('mealplan.php?action=current');
         renderMealPlan(grid, plan);
-        await loadShoppingList(aside, plan.id);
+        // Always regenerate so backend normalization fixes apply
+        await loadShoppingList(aside, plan.id, true);
     } catch (e) {
         // No current plan - keep placeholder
     }
@@ -809,7 +835,13 @@ function renderShoppingList(aside, list) {
         if (items.length === 0) continue;
         scrollHtml += `<div class="list"><h3>${categoryNames[category] || category}</h3><ul>`;
         items.forEach(item => {
-            const qty = [item.quantity, item.unit].filter(Boolean).join(' ');
+            let qty = [item.quantity, item.unit].filter(Boolean).join(' ').replace(/^\s*\+\s*/, '').trim();
+            // Clean up legacy "1 + 1" where units match — sum them
+            if (/^\d+(\.\d+)?\s*\+\s*\d+(\.\d+)?$/.test(qty)) {
+                qty = String(qty.split('+').reduce((a, b) => +a + +b.trim(), 0));
+            }
+            // Hide bare "1" with no unit — not useful info
+            if (qty === '1' && !item.unit) qty = '';
             const checked = item.checked ? 'checked' : '';
             const strikeStyle = item.checked ? 'text-decoration:line-through;opacity:0.5;' : '';
             scrollHtml += `<li data-item-id="${item.id}" class="shop-item ${item.checked ? 'is-checked' : ''}">
@@ -992,7 +1024,7 @@ async function loadFeed(container, user) {
             return `
                 <article class="post-card" data-post-id="${post.id}">
                     <div class="post-header">
-                        <div class="user-avatar">${post.author_avatar || '👤'}</div>
+                        <div class="user-avatar">${letterAvatar(post.author_name, 48)}</div>
                         <div class="post-user-info">
                             <div class="post-username">${escapeHtml(post.author_name)}</div>
                             <div class="post-time">${timeAgo(post.created_at)}</div>
@@ -1094,8 +1126,9 @@ async function loadFeed(container, user) {
                     } else {
                         commentsList.innerHTML = comments.map(c => `
                             <div style="margin-bottom:10px;padding:8px 12px;background:#fdf9ea;border-radius:10px;">
-                                <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-                                    <strong style="font-size:0.85rem;color:#3e2723;">${escapeHtml(c.author_name)}</strong>
+                                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                                    ${letterAvatar(c.author_name, 24)}
+                                    <strong style="font-size:0.85rem;color:#3e2723;flex:1;">${escapeHtml(c.author_name)}</strong>
                                     <span style="font-size:0.75rem;color:#999;">${timeAgo(c.created_at)}</span>
                                 </div>
                                 <p style="margin:0;font-size:0.85rem;color:#4a3728;">${escapeHtml(c.content)}</p>
@@ -1141,8 +1174,9 @@ async function loadFeed(container, user) {
                     const comments = await apiCall(`social.php?action=comments&post_id=${postId}`);
                     commentsList.innerHTML = comments.map(c => `
                         <div style="margin-bottom:10px;padding:8px 12px;background:#fdf9ea;border-radius:10px;">
-                            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-                                <strong style="font-size:0.85rem;color:#3e2723;">${escapeHtml(c.author_name)}</strong>
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                                ${letterAvatar(c.author_name, 24)}
+                                <strong style="font-size:0.85rem;color:#3e2723;flex:1;">${escapeHtml(c.author_name)}</strong>
                                 <span style="font-size:0.75rem;color:#999;">${timeAgo(c.created_at)}</span>
                             </div>
                             <p style="margin:0;font-size:0.85rem;color:#4a3728;">${escapeHtml(c.content)}</p>
@@ -1226,8 +1260,6 @@ async function loadActiveFriends() {
         const sorted = [...list].sort((a, b) => (b.recent_posts || 0) - (a.recent_posts || 0));
         const displayed = sorted.slice(0, 5);
         container.innerHTML = displayed.map((friend, i) => {
-            const avatars = ['🧑‍🍳', '👨‍🍳', '👩‍🍳', '🧑', '👨', '👩'];
-            const avatar = friend.avatar_path || avatars[i % avatars.length];
             const name = friend.name || 'Friend';
             let status = '';
             if (friend.recent_posts > 0) {
@@ -1239,7 +1271,7 @@ async function loadActiveFriends() {
             }
             return `
                 <div class="active-user">
-                    <div class="user-avatar-tiny">${avatar}</div>
+                    <div class="user-avatar-tiny">${letterAvatar(name, 36)}</div>
                     <div class="active-user-info">
                         <div class="active-user-name">${escapeHtml(name)}</div>
                         <div class="active-user-status">${status}</div>
@@ -1413,7 +1445,7 @@ async function initProfilePage(user) {
         if (friendsList && friendsData.friends.length > 0) {
             friendsList.innerHTML = friendsData.friends.map(f => `
                 <div class="friend-item" data-friend-id="${f.id}">
-                    <div class="friend-avatar">${f.avatar_path || '👤'}</div>
+                    <div class="friend-avatar">${letterAvatar(f.name, 44)}</div>
                     <div class="friend-info">
                         <div class="friend-name">${escapeHtml(f.name)}</div>
                         <div class="friend-meta">${f.recent_posts > 0 ? f.recent_posts + ' posts this week' : 'Friends since ' + timeAgo(f.friends_since)}</div>
@@ -1441,7 +1473,7 @@ async function initProfilePage(user) {
         } else if (requestsList) {
             requestsList.innerHTML = pending.incoming.map(r => `
                 <div class="request-item" data-request-id="${r.request_id}">
-                    <div class="request-avatar">${r.avatar_path || '👤'}</div>
+                    <div class="request-avatar">${letterAvatar(r.name, 44)}</div>
                     <div class="request-info">
                         <div class="request-name">${escapeHtml(r.name)}</div>
                         <div class="request-meta">Sent ${timeAgo(r.created_at)}</div>
