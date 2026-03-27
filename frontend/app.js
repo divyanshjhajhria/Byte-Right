@@ -466,6 +466,18 @@ async function initDashboardPage(user) {
 // Load current meal plan preview into Today's / Tomorrow's Plan sections
     try {
         const plan = await apiCall('mealplan.php?action=current');
+        const container = document.getElementById('weekPreview');
+        if (container && plan.items) {
+            const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            const todayIdx = plan.server_day_index ?? [6,0,1,2,3,4,5][new Date().getDay()];
+            const dinnerItems = plan.items.filter(i => i.meal_type === 'dinner');
+
+
+            const todayAndForward = [];
+            for (let i = 0; i < 4; i++) {
+                const dayIdx = (todayIdx + i) % 7;
+                const item = dinnerItems.find(d => parseInt(d.day_of_week) === dayIdx);                
+                if (item) todayAndForward.push({ item, offset: i });
         const todayScroll    = document.getElementById('today-plan-scroll');
         const tomorrowScroll = document.getElementById('tomorrow-plan-scroll');
 
