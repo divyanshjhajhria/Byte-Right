@@ -378,7 +378,11 @@ function getCurrentPlan(): void {
     $plan = $stmt->fetch();
     if (!$plan) jsonResponse(['error' => 'No meal plan for current week', 'week_start' => $weekStart], 404);
 
-    jsonResponse(loadFullPlan($db, $plan['id']));
+    $result = loadFullPlan($db, $plan['id']);
+    // Add server's current day (0=Mon, 6=Sun) so frontend doesn't rely on client clock
+    $phpDay = (int) date('N') - 1; // date('N'): 1=Mon...7=Sun, minus 1 → 0=Mon...6=Sun
+    $result['server_day_index'] = $phpDay;
+    jsonResponse($result);
 }
 
 function updateMealSlot(): void {
