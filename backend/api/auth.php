@@ -1,12 +1,5 @@
 <?php
-/**
- * ByteRight - Authentication API
- *
- * POST /api/auth.php?action=register   - Register new user
- * POST /api/auth.php?action=login      - Login
- * GET  /api/auth.php?action=logout     - Logout
- * GET  /api/auth.php?action=status     - Check login status
- */
+// ByteRight — Authentication (register, login, logout, status check)
 
 require_once __DIR__ . '/../config/database.php';
 startSession();
@@ -14,22 +7,14 @@ startSession();
 $action = $_GET['action'] ?? '';
 
 switch ($action) {
-    case 'register':
-        handleRegister();
-        break;
-    case 'login':
-        handleLogin();
-        break;
-    case 'logout':
-        handleLogout();
-        break;
-    case 'status':
-        handleStatus();
-        break;
-    default:
-        jsonResponse(['error' => 'Invalid action'], 400);
+    case 'register':  handleRegister();  break;
+    case 'login':     handleLogin();     break;
+    case 'logout':    handleLogout();    break;
+    case 'status':    handleStatus();    break;
+    default:          jsonResponse(['error' => 'Invalid action'], 400);
 }
 
+// Creates a new user account, hashes their password, and logs them in
 function handleRegister(): void {
     $data = getRequestBody();
 
@@ -38,7 +23,6 @@ function handleRegister(): void {
     $password = $data['password'] ?? '';
     $confirm  = $data['confirm_password'] ?? '';
 
-    // Validation
     if ($name === '' || $email === '' || $password === '') {
         jsonResponse(['error' => 'Name, email and password are required'], 400);
     }
@@ -54,36 +38,29 @@ function handleRegister(): void {
 
     $db = getDB();
 
-    // Check if email already exists
     $stmt = $db->prepare('SELECT id FROM users WHERE email = ?');
     $stmt->execute([$email]);
     if ($stmt->fetch()) {
         jsonResponse(['error' => 'Email already registered'], 409);
     }
 
-    // Create user
     $hash = password_hash($password, PASSWORD_DEFAULT);
     $stmt = $db->prepare('INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)');
     $stmt->execute([$name, $email, $hash]);
     $userId = (int) $db->lastInsertId();
 
-    // Auto-login after registration
     $_SESSION['user_id'] = $userId;
 
-    // Log activity
-    $stmt = $db->prepare('INSERT INTO activity_log (user_id, action_type, description) VALUES (?, "account_created", "Account created")');
-    $stmt->execute([$userId]);
+    $db->prepare('INSERT INTO activity_log (user_id, action_type, description) VALUES (?, "account_created", "Account created")')
+       ->execute([$userId]);
 
     jsonResponse([
         'success' => true,
-        'user' => [
-            'id'    => $userId,
-            'name'  => $name,
-            'email' => $email,
-        ]
+        'user' => ['id' => $userId, 'name' => $name, 'email' => $email]
     ], 201);
 }
 
+// Checks email + password against the database, starts a session on success
 function handleLogin(): void {
     $data = getRequestBody();
 
@@ -107,14 +84,11 @@ function handleLogin(): void {
 
     jsonResponse([
         'success' => true,
-        'user' => [
-            'id'    => $user['id'],
-            'name'  => $user['name'],
-            'email' => $user['email'],
-        ]
+        'user' => ['id' => $user['id'], 'name' => $user['name'], 'email' => $user['email']]
     ]);
 }
 
+// Destroys the session and clears the cookie
 function handleLogout(): void {
     $_SESSION = [];
     if (ini_get('session.use_cookies')) {
@@ -126,6 +100,7 @@ function handleLogout(): void {
     jsonResponse(['success' => true]);
 }
 
+// Returns the current user's info if they're logged in
 function handleStatus(): void {
     $userId = getLoggedInUser();
     if ($userId === false) {
@@ -142,8 +117,5 @@ function handleStatus(): void {
         jsonResponse(['logged_in' => false]);
     }
 
-    jsonResponse([
-        'logged_in' => true,
-        'user' => $user
-    ]);
+    jsonResponse(['logged_in' => true, 'user' => $user]);
 }

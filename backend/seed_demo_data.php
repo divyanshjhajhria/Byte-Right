@@ -553,6 +553,65 @@ foreach ($popularityMap as $title => $score) {
 }
 echo "Set popularity scores on featured recipes\n";
 
+// ============================================
+// 13. ADD IMAGE URLs TO RECIPES
+// ============================================
+
+$imageMap = [
+    'Classic Scrambled Eggs on Toast' => 'https://images.unsplash.com/photo-1525351484163-7529414344d8?w=600&h=400&fit=crop',
+    'Overnight Oats'                 => 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=400&fit=crop',
+    'Banana Pancakes'                => 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=600&h=400&fit=crop',
+    'Avocado Toast'                  => 'https://images.unsplash.com/photo-1541519227354-08fa5d50c44d?w=600&h=400&fit=crop',
+    'Porridge with Honey and Banana' => 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&h=400&fit=crop',
+    'Fruit and Yoghurt Bowl'         => 'https://images.unsplash.com/photo-1511690743698-d9d18f7e20f1?w=600&h=400&fit=crop',
+    'Peanut Butter Banana Wrap'      => 'https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=600&h=400&fit=crop',
+    'Smoothie Bowl'                  => 'https://images.unsplash.com/photo-1590301157890-4810ed352733?w=600&h=400&fit=crop',
+    'Tomato Soup'                    => 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600&h=400&fit=crop',
+    'Cheese Toastie'                 => 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=600&h=400&fit=crop',
+    'Egg Fried Rice'                 => 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=600&h=400&fit=crop',
+    'Quesadilla'                     => 'https://images.unsplash.com/photo-1618040996337-56904b7850b9?w=600&h=400&fit=crop',
+    'Spaghetti Bolognese'            => 'https://images.unsplash.com/photo-1622973536968-3ead9e780960?w=600&h=400&fit=crop',
+    'Chicken Stir-Fry'               => 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&h=400&fit=crop',
+    'Vegetable Curry'                => 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=600&h=400&fit=crop',
+    'Pasta Carbonara'                => 'https://images.unsplash.com/photo-1612874742237-6526221588e3?w=600&h=400&fit=crop',
+    'Chilli Con Carne'               => 'https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?w=600&h=400&fit=crop',
+    'Bean Burrito Bowl'              => 'https://images.unsplash.com/photo-1543339308-d595c3a9e3b1?w=600&h=400&fit=crop',
+    "Shepherd's Pie"                 => 'https://images.unsplash.com/photo-1600803907087-f56d462fd26b?w=600&h=400&fit=crop',
+    'Thai Green Curry'               => 'https://images.unsplash.com/photo-1574894709920-11b28e7367e3?w=600&h=400&fit=crop',
+    'Jacket Potato with Beans'       => 'https://images.unsplash.com/photo-1568569350062-ebfa3cb195df?w=600&h=400&fit=crop',
+    'Lentil Daal'                    => 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=600&h=400&fit=crop',
+    'Tuna Pasta Bake'                => 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=600&h=400&fit=crop',
+    'Omelette'                       => 'https://images.unsplash.com/photo-1510693206972-df098062cb71?w=600&h=400&fit=crop',
+    'Grilled Salmon with Veg'        => 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=600&h=400&fit=crop',
+    'Greek Salad'                    => 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=600&h=400&fit=crop',
+    'Chicken Wrap'                   => 'https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=600&h=400&fit=crop',
+    'Hummus'                         => 'https://images.unsplash.com/photo-1577805947697-89e18249d767?w=600&h=400&fit=crop',
+    'Garlic Bread'                   => 'https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=600&h=400&fit=crop',
+    'Mushroom Risotto'               => 'https://images.unsplash.com/photo-1476124369491-e7addf5db371?w=600&h=400&fit=crop',
+    'Fish Fingers with Chips'        => 'https://images.unsplash.com/photo-1579208030886-b1f5b0928041?w=600&h=400&fit=crop',
+    'Stuffed Peppers'                => 'https://images.unsplash.com/photo-1596797038530-2c107229654b?w=600&h=400&fit=crop',
+    'Chicken Fajitas'                => 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=600&h=400&fit=crop',
+    'Ramen Noodle Soup'              => 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&h=400&fit=crop',
+    'Shakshuka'                      => 'https://images.unsplash.com/photo-1590412200988-a436970781fa?w=600&h=400&fit=crop',
+    'Chicken Shawarma Bowl'          => 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=600&h=400&fit=crop',
+    'Lamb Kofta with Rice'           => 'https://images.unsplash.com/photo-1544025162-d76694265947?w=600&h=400&fit=crop',
+    'Salmon Teriyaki'                => 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=600&h=400&fit=crop',
+    'Prawn Stir-Fry'                 => 'https://images.unsplash.com/photo-1563379926898-05f4575a45d8?w=600&h=400&fit=crop',
+    'Matzo Ball Soup'                => 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600&h=400&fit=crop',
+    'Falafel Wrap'                   => 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=600&h=400&fit=crop',
+    'Tuna Nicoise Salad'             => 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=600&h=400&fit=crop',
+    'Chickpea and Spinach Stew'      => 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=600&h=400&fit=crop',
+];
+
+// Always update images to fix broken/wrong URLs
+$stmtImg = $db->prepare('UPDATE recipes SET image_url = ? WHERE title = ?');
+$imgCount = 0;
+foreach ($imageMap as $title => $url) {
+    $stmtImg->execute([$url, $title]);
+    $imgCount += $stmtImg->rowCount();
+}
+echo "Updated image URLs for $imgCount recipes\n";
+
 echo "\n=== Demo Data Seeding Complete ===\n";
 echo "Demo user password: demo12345\n";
 echo "You can log in as any demo user, e.g. sarah.mitchell@manchester.ac.uk\n";

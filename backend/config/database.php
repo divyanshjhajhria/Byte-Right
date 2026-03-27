@@ -1,7 +1,5 @@
 <?php
-/**
- * ByteRight - Database Configuration & Connection
- */
+// ByteRight — Database config & shared helpers
 
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'byteright');
@@ -9,14 +7,14 @@ define('DB_USER', 'root');
 define('DB_PASS', '');          // Change for production
 define('DB_CHARSET', 'utf8mb4');
 
-// Spoonacular API key - sign up at https://spoonacular.com/food-api
+// Spoonacular API key — sign up at https://spoonacular.com/food-api
 define('SPOONACULAR_API_KEY', '');  // Add your key here
 
 // Upload settings
 define('UPLOAD_DIR', __DIR__ . '/../uploads/');
 define('MAX_UPLOAD_SIZE', 5 * 1024 * 1024); // 5MB
 
-// CORS headers for cross-origin development setups
+// Allow cross-origin requests from localhost during development
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 $allowedOrigins = ['http://localhost', 'http://localhost:8080', 'http://127.0.0.1'];
 if (in_array($origin, $allowedOrigins) || str_starts_with($origin, 'http://localhost:')) {
@@ -30,9 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-/**
- * Get PDO database connection
- */
+// Returns a reusable PDO connection (singleton)
 function getDB(): PDO {
     static $pdo = null;
     if ($pdo === null) {
@@ -47,26 +43,20 @@ function getDB(): PDO {
     return $pdo;
 }
 
-/**
- * Start or resume session
- */
+// Starts a PHP session if one isn't active already
 function startSession(): void {
     if (session_status() === PHP_SESSION_NONE) {
         session_start();
     }
 }
 
-/**
- * Check if user is logged in, return user_id or false
- */
+// Returns the logged-in user's ID, or false if not logged in
 function getLoggedInUser(): int|false {
     startSession();
     return $_SESSION['user_id'] ?? false;
 }
 
-/**
- * Require login - redirect or send 401
- */
+// Blocks access for unauthenticated users — sends a 401 and stops
 function requireLogin(): int {
     $userId = getLoggedInUser();
     if ($userId === false) {
@@ -77,11 +67,8 @@ function requireLogin(): int {
     return $userId;
 }
 
-/**
- * Send JSON response
- */
+// Sends a JSON response and exits (cleans any stray output first)
 function jsonResponse(mixed $data, int $code = 200): void {
-    // Discard any stray PHP output (warnings, notices) that would break JSON
     while (ob_get_level() > 0) ob_end_clean();
     http_response_code($code);
     header('Content-Type: application/json');
@@ -89,9 +76,7 @@ function jsonResponse(mixed $data, int $code = 200): void {
     exit;
 }
 
-/**
- * Get POST body as assoc array (JSON or form data)
- */
+// Reads the request body — handles both JSON and form-encoded POST data
 function getRequestBody(): array {
     $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
     if (str_contains($contentType, 'application/json')) {

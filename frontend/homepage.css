@@ -61,6 +61,7 @@ body {
   border-radius: 999px;
   box-shadow: 0 10px 26px rgba(121, 85, 72, 0.18);
   border: 1px solid rgba(193, 170, 123, 0.35);
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   margin-bottom: 32px;
 }

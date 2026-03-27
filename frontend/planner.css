@@ -151,12 +151,15 @@ body {
   gap: 8px;
   min-width: 0;
 }
+.list ul > * + * { margin-top: 8px; }
+@supports (gap: 1px) { .list ul > * + * { margin-top: 0; } }
 
 .list li.shop-item {
   display: grid;
   grid-template-columns: 22px minmax(0, 1fr) auto 28px;
   align-items: center;
-  gap: 10px;
+  row-gap: 10px;
+  column-gap: 10px;
   width: 100%;
   min-width: 0;
   padding: 8px 0;
