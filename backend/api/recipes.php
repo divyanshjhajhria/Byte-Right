@@ -312,10 +312,11 @@ function getRandomRecipes(): void {
 // Returns the most popular recipes (by popularity_score), falls back to random
 function getTrendingRecipes(): void {
     $count = min(max((int) ($_GET['count'] ?? 5), 1), 20);
+    $offset = max((int) ($_GET['offset'] ?? 0), 0);
     $db = getDB();
 
     try {
-        $stmt = $db->query('SELECT * FROM recipes WHERE popularity_score > 0 ORDER BY popularity_score DESC LIMIT ' . $count);
+        $stmt = $db->query('SELECT * FROM recipes WHERE popularity_score > 0 GROUP BY title ORDER BY popularity_score DESC LIMIT ' . $count . ' OFFSET ' . $offset);
         $recipes = $stmt->fetchAll();
     } catch (\Throwable $e) {
         $stmt = $db->query('SELECT * FROM recipes ORDER BY RAND() LIMIT ' . $count);

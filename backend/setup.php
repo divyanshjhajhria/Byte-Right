@@ -20,6 +20,13 @@ try {
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
     ]);
 
+    // Drop and recreate database for a clean setup
+    $pdo->exec('DROP DATABASE IF EXISTS byteright');
+    $pdo->exec('CREATE DATABASE byteright');
+    $pdo->exec('USE byteright');
+
+    echo "Database 'byteright' created fresh.\n";
+
     // Read and execute schema
     $schemaPath = __DIR__ . '/schema.sql';
     if (!file_exists($schemaPath)) {
@@ -28,37 +35,35 @@ try {
 
     $sql = file_get_contents($schemaPath);
 
-    // Split by semicolons followed by newline, then strip SQL comment lines
+    // Strip SQL comment lines (lines starting with --)
+    $sql = preg_replace('/^\s*--.*$/m', '', $sql);
+    // Remove CREATE DATABASE / USE statements (already executed above)
+    $sql = preg_replace('/CREATE DATABASE.*?;\s*/i', '', $sql);
+    $sql = preg_replace('/USE\s+byteright\s*;\s*/i', '', $sql);
+
     $statements = array_filter(
-        array_map(function ($s) {
-            // Remove full-line SQL comments (-- ...) before evaluating the statement
-            $lines = explode("\n", $s);
-            $lines = array_filter($lines, fn($line) => !str_starts_with(trim($line), '--'));
-            return trim(implode("\n", $lines));
-        }, preg_split('/;\s*\n/', $sql)),
+        array_map('trim', preg_split('/;\s*\n/', $sql)),
         fn($s) => $s !== ''
     );
 
     $count = 0;
+    $errors = 0;
     foreach ($statements as $stmt) {
         if (trim($stmt) === '') continue;
         try {
             $pdo->exec($stmt);
             $count++;
         } catch (PDOException $e) {
-            // Skip duplicate errors (re-running setup)
-            if (!str_contains($e->getMessage(), 'already exists') &&
-                !str_contains($e->getMessage(), 'Duplicate')) {
-                echo "WARNING: " . substr($e->getMessage(), 0, 120) . "\n";
-            }
+            $errors++;
+            echo "WARNING: " . substr($e->getMessage(), 0, 120) . "\n";
         }
     }
 
-    echo "SUCCESS: Executed $count SQL statements.\n";
+    echo "\nSUCCESS: Executed $count SQL statements.\n";
+    if ($errors > 0) echo "($errors warnings)\n";
     echo "Database 'byteright' is ready with all tables and seed data.\n\n";
 
     // Verify tables
-    $pdo->exec('USE byteright');
     $tables = $pdo->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);
     echo "Tables created: " . implode(', ', $tables) . "\n";
 

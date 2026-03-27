@@ -401,7 +401,7 @@ async function initDashboardPage(user) {
         const container = document.getElementById('budgetRecipes');
         const budgetList = Array.isArray(budgetData) ? budgetData : (budgetData?.recipes || []);
         if (container && budgetList.length > 0) {
-            container.innerHTML = budgetList.slice(0, 5).map(r => {
+            container.innerHTML = budgetList.slice(0, 4).map(r => {
                 const totalTime = (parseInt(r.prep_time) || 0) + (parseInt(r.cook_time) || 0);
                 const timeStr = totalTime > 0 ? `${totalTime} min` : '';
                 const difficultyStr = r.difficulty || 'easy';
