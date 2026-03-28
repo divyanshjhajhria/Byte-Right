@@ -423,47 +423,31 @@ async function initDashboardPage(user) {
         }
     } catch (e) { }
 
-    // Load user's saved recipes into the saved recipes strip
+    // ---- SAVED RECIPES ----
     try {
-        const saved = await apiCall('recipes.php?action=saved');
-        const savedScroll = document.getElementById('saved-recipes-scroll');
-        const savedSection = document.getElementById('saved-recipes-section');
-        const recipes = saved.recipes || saved;
-        if (savedScroll) {
-            if (recipes.length === 0) {
-                savedScroll.innerHTML = '<p style="text-align:center;padding:24px;color:#8a7a6a;width:100%;">No saved recipes yet — save ones you like!</p>';
-            } else {
-                savedScroll.innerHTML = recipes.map(r => {
-                    const totalTime = (r.prep_time || 0) + (r.cook_time || 0);
-                    const cost = r.estimated_cost ? `£${parseFloat(r.estimated_cost).toFixed(2)}` : '';
-                    const rating = r.avg_rating ? `⭐ ${parseFloat(r.avg_rating).toFixed(1)}` : '';
-                    const imgContent = r.image_url
-                        ? `<img src="${escapeHtml(r.image_url)}" alt="${escapeHtml(r.title)}" style="width:100%;height:100%;object-fit:cover;display:block;">`
-                        : getRecipeIcon(r);
-                    return `
-                        <div class="trending-card" onclick="openRecipeModal(${r.id})" title="${escapeHtml(r.title)}">
-                            <div class="trending-card-img${r.image_url ? ' has-image' : ''}">${imgContent}</div>
-                            <div class="trending-badge" style="background:#7cb342;">♥ Saved</div>
-                            <div class="trending-card-body">
-                                <div class="trending-card-title">${escapeHtml(r.title)}</div>
-                                ${cost ? `<div class="trending-card-price">${cost}</div>` : ''}
-                                <div class="trending-card-meta">
-                                    ${totalTime ? `<span>${totalTime} min</span>` : '<span></span>'}
-                                    ${rating ? `<span>${rating}</span>` : ''}
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            }
+        const savedData = await apiCall('recipes.php?action=saved');
+        const container = document.getElementById('savedRecipes');
+        const savedList = Array.isArray(savedData) ? savedData : (savedData?.recipes || []);
+        if (container && savedList.length > 0) {
+            container.innerHTML = savedList.slice(0, 4).map(r => {
+                const savedIconContent = r.image_url
+                    ? `<img src="${escapeHtml(r.image_url)}" alt="${escapeHtml(r.title)}">`
+                    : getRecipeIcon(r);
+                return `
+                <div class="saved-recipe-item" onclick="openRecipeModal(${r.id || r.recipe_id})">
+                    <span class="saved-recipe-icon${r.image_url ? ' has-image' : ''}">${savedIconContent}</span>
+                    <div class="saved-recipe-info">
+                        <div class="saved-recipe-title">${escapeHtml(r.title)}</div>
+                        <div class="saved-recipe-meta">${r.difficulty || 'easy'} · ${(r.prep_time||0)+(r.cook_time||0)} min</div>
+                    </div>
+                </div>
+            `;}).join('');
+        } else if (container) {
+            container.innerHTML = '<p style="text-align:center;padding:16px;color:#8a7a6a;font-size:0.85rem;">No saved recipes yet. Browse recipes to save your favourites!</p>';
         }
-    } catch (e) {
-        const savedScroll = document.getElementById('saved-recipes-scroll');
-        if (savedScroll) savedScroll.innerHTML = '<p style="text-align:center;padding:24px;color:#8a7a6a;width:100%;">Could not load saved recipes.</p>';
-    }
- 
-    // Load current meal plan preview
-// Load current meal plan preview into Today's / Tomorrow's Plan sections
+    } catch (e) { }
+
+    // ---- WEEK PLAN PREVIEW ----
     try {
         const plan = await apiCall('mealplan.php?action=current');
         const container = document.getElementById('weekPreview');
@@ -478,58 +462,24 @@ async function initDashboardPage(user) {
                 const dayIdx = (todayIdx + i) % 7;
                 const item = dinnerItems.find(d => parseInt(d.day_of_week) === dayIdx);                
                 if (item) todayAndForward.push({ item, offset: i });
-        const todayScroll    = document.getElementById('today-plan-scroll');
-        const tomorrowScroll = document.getElementById('tomorrow-plan-scroll');
-
-        if (plan.items && (todayScroll || tomorrowScroll)) {
-            const jsDow       = new Date().getDay();
-            const todayDow    = jsDow === 0 ? 6 : jsDow - 1; // convert Sun=0 → Mon-based index
-            const tomorrowDow = (todayDow + 1) % 7;
-            const mealOrder   = ['breakfast', 'lunch', 'dinner'];
-
-            function renderDayCards(dow, container) {
-                if (!container) return;
-                const dayItems = plan.items
-                    .filter(i => parseInt(i.day_of_week) === dow)
-                    .sort((a, b) => mealOrder.indexOf(a.meal_type) - mealOrder.indexOf(b.meal_type));
-
-                if (dayItems.length === 0) {
-                    container.innerHTML = `<div style="text-align:center;padding:24px;color:#8a7a6a;width:100%;">
-                        No meals planned. <a href="byteright_planner.html" style="color:var(--green-dark);font-weight:600;">Add one →</a>
-                    </div>`;
-                    return;
-                }
-
-                container.innerHTML = dayItems.map(item => {
-                    const title     = item.recipe_title || item.custom_meal_name || 'Meal';
-                    const cost      = item.estimated_cost ? `£${parseFloat(item.estimated_cost).toFixed(2)}` : '';
-                    const time      = item.cook_time ? `${item.cook_time} min` : '';
-                    const icon      = getRecipeIcon({ title, tags: [] });
-                    const mealLabel = item.meal_type ? item.meal_type.charAt(0).toUpperCase() + item.meal_type.slice(1) : '';
-                    const clickAttr = item.recipe_id ? `onclick="openRecipeModal(${item.recipe_id})" style="cursor:pointer;"` : '';
-                    return `
-                        <div class="trending-card" ${clickAttr}>
-                            <div class="trending-card-img">${icon}</div>
-                            ${mealLabel ? `<div class="trending-badge">${mealLabel}</div>` : ''}
-                            <div class="trending-card-body">
-                                <div class="trending-card-title">${escapeHtml(title)}</div>
-                                ${cost ? `<div class="trending-card-price">${cost}</div>` : ''}
-                                <div class="trending-card-meta"><span>${time}</span></div>
-                            </div>
-                        </div>`;
-                }).join('');
             }
 
-            renderDayCards(todayDow,    todayScroll);
-            renderDayCards(tomorrowDow, tomorrowScroll);
+            container.innerHTML = todayAndForward.map(({ item, offset }) => {
+                const dayIdx = (todayIdx + offset) % 7;
+                const label = offset === 0 ? 'Today' : offset === 1 ? 'Tomorrow' : days[dayIdx];
+                return `
+                    <div class="week-day">
+                        <div class="week-day-label">${label}</div>
+                        <div class="week-day-meal">${escapeHtml(item.recipe_title || item.custom_meal_name || 'No meal')}</div>
+                    </div>
+                `;
+            }).join('');
+        } else if (document.getElementById('weekPreview')) {
+            document.getElementById('weekPreview').innerHTML = '<p style="text-align:center;padding:16px;color:#8a7a6a;font-size:0.85rem;">No meal plan yet. Generate one from the Meal Plan page!</p>';
         }
     } catch (e) {
-        ['today-plan-scroll', 'tomorrow-plan-scroll'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.innerHTML = `<div style="text-align:center;padding:24px;color:#8a7a6a;width:100%;">
-                No meal plan yet. <a href="byteright_planner.html" style="color:var(--green-dark);font-weight:600;">Create one →</a>
-            </div>`;
-        });
+        const wp = document.getElementById('weekPreview');
+        if (wp) wp.innerHTML = '<p style="text-align:center;padding:16px;color:#8a7a6a;font-size:0.85rem;">No meal plan yet. Generate one from the Meal Plan page!</p>';
     }
 
     // Logout link
